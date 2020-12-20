@@ -1,0 +1,25 @@
+{
+  "name": "tlite",
+  "version": "1.0.11",
+  "description": "sqlite+fts5 command line interface",
+  "keywords": [],
+  "main": "./index.js",
+  "author": "Tito Liburno <tito@liburno.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liburno/tlite.git"
+  },
+  "scripts": {
+    "preinstall": "echo ** prima installazione **",
+    "postinstall": "node ./scripts/tito.js"
+  },
+  "license": "MIT",
+  "preferGlobal": true,
+  "dependencies": {
+    "better-sqlite3": "^7.1.1",
+    "readline": "^1.3.0"
+  },
+  "bin": {
+    "tlite": "./bin/cli-tlite.js"
+  }
+}
