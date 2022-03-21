@@ -44,6 +44,38 @@ module.exports = {
         var d = new Database(name)
         mappe.set(name, d);
         d._regx={};
+        d.function("compare", (first, second) => {
+            first = first.replace(/\s+/g, '')
+            second = second.replace(/\s+/g, '')
+
+            if (first === second) return 1; // identical or empty
+            if (first.length < 2 || second.length < 2) return 0; // if either is a 0-letter or 1-letter string
+
+            let firstBigrams = new Map();
+            for (let i = 0; i < first.length - 1; i++) {
+                const bigram = first.substring(i, i + 2);
+                const count = firstBigrams.has(bigram)
+                    ? firstBigrams.get(bigram) + 1
+                    : 1;
+
+                firstBigrams.set(bigram, count);
+            };
+
+            let intersectionSize = 0;
+            for (let i = 0; i < second.length - 1; i++) {
+                const bigram = second.substring(i, i + 2);
+                const count = firstBigrams.has(bigram)
+                    ? firstBigrams.get(bigram)
+                    : 0;
+
+                if (count > 0) {
+                    firstBigrams.set(bigram, count - 1);
+                    intersectionSize++;
+                }
+            }
+
+            return (2.0 * intersectionSize) / (first.length + second.length - 2);
+        })
         d.function("regex",(a,b,id=0)=> {
             if (!d._regx[b]) d._regx[b]=new RegExp(b,"gim");
             var rr=d._regx[b];
@@ -55,11 +87,14 @@ module.exports = {
                 return ""
             }
         });
+        d.function("mix", (a,b)=> {
+            return a?a:b;
+        })
         d.function("anno",(d)=> {
             var a=0
             d=parseInt(d) || 0;
             a=Math.floor(d/10000);
-            if (a<2000 || a>2200) a=0;
+            if (a<1800 || a>2200) a=0;
             return a;
         })
         d.function("mese",(d)=> {
@@ -92,7 +127,19 @@ module.exports = {
                 }
                 return 0;
         });
-        // tm
+        
+        d._cds={};
+        d.prepara=(a)=>{
+            if (!d._cds[a]) d._cds[a]=d.prepare(a);
+            return d._cds[a];
+        }
+        d.get = function(sql,...args) {
+            return d.prepara(sql).get(args) || {};
+        };
+        d.all = function(sql,...args) {
+            return d.prepara(sql).all(args) || [];
+        }
+        
         d.run = function (sql, ...args) {
             var res
             if (sql.indexOf(';') > 0) {
