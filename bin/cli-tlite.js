@@ -4,7 +4,6 @@ const path = require('path')
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 database = require('./database');
-const {version}=require("package.json")
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
         spawnSync('pbcopy', { input: txt });
@@ -73,7 +72,7 @@ const rl = readline.createInterface({
     prompt: 'TL> '
 });
 
-stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset}${Yellow} v.${version}${Reset} (c) Croswil 2022
+stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022
 ${Green}SqlLite+FTS5 CLI Browser
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
