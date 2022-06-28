@@ -336,6 +336,7 @@ var processa = (res) => {
             case "drop":
             case "alter":
             case "vacuum":
+            case "attach":
                 dosql(r1 + ' ' + r0, false);
                 break;
             case 'i':

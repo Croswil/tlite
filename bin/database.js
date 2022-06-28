@@ -149,7 +149,7 @@ module.exports = {
                         res = d.prepare(e).run(args);
                 })
             } else {
-                res = d.prepare(sql).run(args);
+                res = d.prepara(sql).run(args);
             }
             if (res) {
                 if (res.lastInsertRowid) return res.lastInsertRowid; else return res.changes;
