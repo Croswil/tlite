@@ -23,7 +23,7 @@ function getip() {
                 if (r1) {
                     var r2 = /localhost:(\d+)/gim.exec(data);
                     if (r2) {
-                        stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}\n`);
+                        stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}${Reset}\n`);
                     }
                 }
             }
