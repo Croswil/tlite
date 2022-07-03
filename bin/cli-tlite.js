@@ -3,7 +3,7 @@ const readline = require('readline');
 const path = require('path')
 const fs = require('fs');
 const { spawnSync } = require('child_process');
-database = require('./database');
+var { database } = require('liburno_lib');
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
         spawnSync('pbcopy', { input: txt });
@@ -11,13 +11,33 @@ var clippa = (txt) => {
         spawnSync('xsel', ['--clipboard', '--input'], { input: txt });
     }
 }
+function getip() {
 
+    var folder = "/etc/nginx/sites-available"
+    if (fs.existsSync(folder)) {
+        var vv = fs.readdirSync(folder);
+        for (var v of vv) {
+            if (v.length > 0 && v != 'default') {
+                var data = fs.readFileSync(path.join(folder, v)).toString();
+                var r1 = /server_name\s*(.*);/gim.exec(data);
+                if (r1) {
+                    var r2 = /localhost:(\d+)/gim.exec(data);
+                    if (r2) {
+                        stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}\n`);
+                    }
+                }
+            }
+        }
+    } else {
+        stdout.write(`Folder: ${Green}"${folder}" ${Reset} not found!\n`);
+    }
+}
 
 // -------------------------- variabili globali
 var db = null, dbname = '';
 var modosql = false, mcreate = false, mmenu = false;
 
-const Reset= "\x1b[0m",Bold= "\x1b[1m",Red= "\x1b[31m", Green= "\x1b[32m", Yellow= "\x1b[33m";
+const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
 
 var pad = (s, l) => { return !l || s.length >= l ? l : s + new Array(l - s.length).join(' '); }
 var getdb = (noerr = false) => {
@@ -72,10 +92,6 @@ const rl = readline.createInterface({
     prompt: 'TL> '
 });
 
-stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022
-${Green}SqlLite+FTS5 CLI Browser
-Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
-`);
 
 var doselect = (db, s) => {
     if (s.indexOf(' limit') < 1) s += ' limit 20' // max 20 righe;
@@ -121,7 +137,7 @@ var dosql = (sql, modo) => {
                     if (!s.startsWith('select ')) {
                         if (s.trim()) db.run(s);
                     } else {
-                        doselect(db,s);
+                        doselect(db, s);
                     }
                 }
             }
@@ -193,6 +209,9 @@ var processa = (res) => {
       ${Bold}.<table>           ${Reset}Mostra il contenuto della tabella
       ${Bold}q,quit             ${Reset}Esci 
       `)
+                break;
+            case 'getip':
+                getip();
                 break;
             case 'use':
                 r0 = r0.replaceAll(';', '');
@@ -359,7 +378,7 @@ var processa = (res) => {
                                     var word = resplit.join(' ');
                                     r = db.strvirtual(r0, word);
                                     if (word) {
-                                        doselect(db,r);
+                                        doselect(db, r);
                                     }
                                     break;
                                 default: r = db.strselect(r0); break;
@@ -408,12 +427,21 @@ var processa = (res) => {
 }
 
 var xx = process.argv[2];
-if (xx && fs.existsSync(xx)) {
-    processa(`use ${xx}`);
+if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
+    getip()
+    process.exit(0);
 } else {
-    processa('db');
-}
+    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022
+${Green}SqlLite+FTS5 CLI tool
+Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
+`);
 
+    if (xx && fs.existsSync(xx)) {
+        processa(`use ${xx}`);
+    } else {
+        processa('db');
+    }
+}
 
 
 rl.on('line', (res) => {
