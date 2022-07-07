@@ -43,12 +43,15 @@ var pad = (s, l) => { return !l || s.length >= l ? l : s + new Array(l - s.lengt
 var getdb = (noerr = false) => {
     if (dbname) {
         try {
-            db = database.db(dbname);
+            if (!db) {
+                db = database.db(dbname);
+            } 
             return true;
         } catch (e) {
 
         }
     } else {
+        db=null;
         if (!noerr) stdout.write(`${Red}..missing db..${Reset}\n`);
     }
     return false;
@@ -109,7 +112,12 @@ var doselect = (db, s) => {
         process.stdout.write(`${rx.join(',')}\n`);
     }
 }
-
+var printdbs=()=>{
+    var rr=db.databases()
+    for (var r of rr) {
+        stdout.write(`${Yellow}${r.name}: ${Bold}${r.file}${Reset}\n`);
+    }
+}
 
 var dosql = (sql, modo) => {
     startast = false;
@@ -193,12 +201,15 @@ var processa = (res) => {
       ${Bold}close,chiudi       ${Reset}Chiudi il database corrente
       ${Bold}last,db,lastdb     ${Reset}Mostra l'elenco degli ultimi db utilizzati
       ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
-      ${Bold}tables             ${Reset}Mostra le tabelle di un DB
+      ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
+      ${Bold}detach <nn>        ${Reset}Scollega il database collegato
+      
+      ${Bold}tables/tabelle      ${Reset}Mostra le tabelle di un DB
       ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
       ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
       ${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (lo stesso dell'esportazione)
-                        Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
+                         Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
       ${Bold}! <comando...> ;   ${Reset}esegue il comando SQL senza risultato (chiudere con ${Bold}!${Reset})
       ${Bold}!c <comando...> ;  ${Reset}esegue il comando SQL per creare una tabella (chiudere con ${Bold}!${Reset})
       ${Bold}i <table>          ${Reset}Genera il comando SQL per l'insert sulla tabella 
@@ -254,7 +265,39 @@ var processa = (res) => {
                     mmenu = true;
                 }
                 break;
-            case 'tabelle':
+            case 'attach':
+                if (getdb()) {
+                    try {
+                        r0 = r0.replaceAll(';', '');
+                        if (r0) {
+                            var vv=r0.split(' ');
+                            if (vv[0] && db.attach(vv[0],vv[1])) {
+                                printdbs();
+                            
+                            } else {
+                                stdout.write(`${Red}Errore collegamento: file non trovato${Reset}\n`);        
+                            }
+                        } else {
+                            printdbs();
+                        }
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
+                    }
+                }
+                break;
+               case 'detach':
+                    if (getdb()) {
+                        try {
+                            r0 = r0.replaceAll(';', '');
+                            db.detach(r0)
+                            printdbs();
+                            
+                        } catch (e) {
+                            stdout.write(`${Red}${e}${Reset}\n`);
+                        }
+                    }
+                    break;
+                case 'tabelle':
             case 'tables':
                 if (getdb()) {
                     try {
@@ -355,7 +398,6 @@ var processa = (res) => {
             case "drop":
             case "alter":
             case "vacuum":
-            case "attach":
                 dosql(r1 + ' ' + r0, false);
                 break;
             case 'i':
@@ -412,10 +454,10 @@ var processa = (res) => {
                 break; 1
         }
     }
-    if (db) {
-        db.chiudi();
-        db = null;
-    }
+//    if (db) {
+//        db.chiudi();
+//        db = null;
+//    }
     if (mmenu) {
         rl.setPrompt("[0..9] >")
     } else if (!modosql) {
