@@ -203,7 +203,6 @@ var processa = (res) => {
       ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
       ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
       ${Bold}detach <nn>        ${Reset}Scollega il database collegato
-      
       ${Bold}tables/tabelle      ${Reset}Mostra le tabelle di un DB
       ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
