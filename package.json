@@ -16,13 +16,10 @@
   "license": "MIT",
   "preferGlobal": true,
   "dependencies": {
-    "argv": "^0.0.2",
     "liburno_lib": "^3.0.11",
-    "readline": "^1.3.0",
-    "sharp": "^0.31.0"
+    "readline": "^1.3.0"
   },
   "bin": {
-    "tlite": "./bin/cli-tlite.js",
-    "manifest": "./bin/manifest.js"
+    "tlite": "./bin/cli-tlite.js"
   }
 }

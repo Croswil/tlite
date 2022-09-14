@@ -21,9 +21,14 @@ function getip() {
                 var data = fs.readFileSync(path.join(folder, v)).toString();
                 var r1 = /server_name\s*(.*);/gim.exec(data);
                 if (r1) {
-                    var r2 = /localhost:(\d+)/gim.exec(data);
-                    if (r2) {
-                        stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}${Reset}\n`);
+                    for (; ;) {
+                        var r2 = /localhost:(\d+)/gim.exec(data);
+                        if (r2) {
+                            stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}${Reset}\n`);
+                            data=data.slice(r2.lastIndex+8);
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
@@ -45,13 +50,13 @@ var getdb = (noerr = false) => {
         try {
             if (!db) {
                 db = database.db(dbname);
-            } 
+            }
             return true;
         } catch (e) {
 
         }
     } else {
-        db=null;
+        db = null;
         if (!noerr) stdout.write(`${Red}..missing db..${Reset}\n`);
     }
     return false;
@@ -112,8 +117,8 @@ var doselect = (db, s) => {
         process.stdout.write(`${rx.join(',')}\n`);
     }
 }
-var printdbs=()=>{
-    var rr=db.databases()
+var printdbs = () => {
+    var rr = db.databases()
     for (var r of rr) {
         stdout.write(`${Yellow}${r.name}: ${Bold}${r.file}${Reset}\n`);
     }
@@ -269,12 +274,12 @@ var processa = (res) => {
                     try {
                         r0 = r0.replaceAll(';', '');
                         if (r0) {
-                            var vv=r0.split(' ');
-                            if (vv[0] && db.attach(vv[0],vv[1])) {
+                            var vv = r0.split(' ');
+                            if (vv[0] && db.attach(vv[0], vv[1])) {
                                 printdbs();
-                            
+
                             } else {
-                                stdout.write(`${Red}Errore collegamento: file non trovato${Reset}\n`);        
+                                stdout.write(`${Red}Errore collegamento: file non trovato${Reset}\n`);
                             }
                         } else {
                             printdbs();
@@ -284,19 +289,19 @@ var processa = (res) => {
                     }
                 }
                 break;
-               case 'detach':
-                    if (getdb()) {
-                        try {
-                            r0 = r0.replaceAll(';', '');
-                            db.detach(r0)
-                            printdbs();
-                            
-                        } catch (e) {
-                            stdout.write(`${Red}${e}${Reset}\n`);
-                        }
+            case 'detach':
+                if (getdb()) {
+                    try {
+                        r0 = r0.replaceAll(';', '');
+                        db.detach(r0)
+                        printdbs();
+
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
                     }
-                    break;
-                case 'tabelle':
+                }
+                break;
+            case 'tabelle':
             case 'tables':
                 if (getdb()) {
                     try {
@@ -454,10 +459,10 @@ var processa = (res) => {
                 break; 1
         }
     }
-//    if (db) {
-//        db.chiudi();
-//        db = null;
-//    }
+    //    if (db) {
+    //        db.chiudi();
+    //        db = null;
+    //    }
     if (mmenu) {
         rl.setPrompt("[0..9] >")
     } else if (!modosql) {
