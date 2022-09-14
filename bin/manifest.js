@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
-import argv from 'argv';
+const fs=require("fs")
+const sharp=require("sharp");
+const argv=require("argv");
 var R1 = 255, G1 = 255, B1 = 255, EX = 30;
 const K = 255
 
