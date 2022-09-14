@@ -474,7 +474,7 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     process.exit(0);
 } else {
 
-    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022 v.11
+    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022
 ${Green}SqlLite+FTS5 CLI tool
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
