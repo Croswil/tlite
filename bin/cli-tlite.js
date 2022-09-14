@@ -20,17 +20,20 @@ function getip() {
             if (v.length > 0 && v != 'default') {
                 var data = fs.readFileSync(path.join(folder, v)).toString();
                 var r1 = /server_name\s*(.*);/gim.exec(data);
+                var pp=[]
                 if (r1) {
                     for (; ;) {
                         var r2 = /localhost:(\d+)/gim.exec(data);
                         if (r2) {
-                            stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${r2[1]}${Reset}\n`);
-                            data=data.slice(r2.lastIndex+8);
+                            pp.push(r2[1]);
+                            data=data.slice(r2.index+8);
                         } else {
                             break;
                         }
                     }
                 }
+                stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${pp.join(' ')}${Reset}\n`);
+                         
             }
         }
     } else {
