@@ -20,20 +20,20 @@ function getip() {
             if (v.length > 0 && v != 'default') {
                 var data = fs.readFileSync(path.join(folder, v)).toString();
                 var r1 = /server_name\s*(.*);/gim.exec(data);
-                var pp=[]
+                var pp = []
                 if (r1) {
                     for (; ;) {
                         var r2 = /localhost:(\d+)/gim.exec(data);
                         if (r2) {
                             pp.push(r2[1]);
-                            data=data.slice(r2.index+8);
+                            data = data.slice(r2.index + 8);
                         } else {
                             break;
                         }
                     }
                 }
                 stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${pp.join(' ')}${Reset}\n`);
-                         
+
             }
         }
     } else {
@@ -311,7 +311,8 @@ var processa = (res) => {
                         var rr = db.tabelle();
                         stdout.write(`${Yellow}Tables: ${Bold}${db.name}${Reset}\n`);
                         for (var r of rr) {
-                            stdout.write(`${r}\n`);
+                            var c = db.get(`select count(rowid) tot from ${r}`).tot
+                            stdout.write(`${r} => ${c || 0} \n`);
                         }
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
