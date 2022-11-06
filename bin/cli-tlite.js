@@ -215,6 +215,7 @@ var processa = (res) => {
       ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
       ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
+      ${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
       ${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (lo stesso dell'esportazione)
                          Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
       ${Bold}! <comando...> ;   ${Reset}esegue il comando SQL senza risultato (chiudere con ${Bold}!${Reset})
@@ -251,6 +252,14 @@ var processa = (res) => {
                     stdout.write(`Database: ${Bold}${Green}${dbname}${Reset}\n`);
                 }
                 break;
+            case 'md':
+            case 'md5':
+                r0 = r0.replaceAll(';', '').trim();
+                var r = r0.md5();
+                clippa(`${r || ''}`)
+                stdout.write(`${r || ''}\n`);
+                break;
+
             case 'close':
             case 'chiudi':
                 if (getdb()) {
