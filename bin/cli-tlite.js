@@ -211,8 +211,9 @@ var processa = (res) => {
       ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
       ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
       ${Bold}detach <nn>        ${Reset}Scollega il database collegato
-      ${Bold}tables/tabelle      ${Reset}Mostra le tabelle di un DB
+      ${Bold}tables/tabelle     ${Reset}Mostra le tabelle di un DB
       ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
+      ${Bold}yaml <table>       ${Reset}Mostra struttura database/tabella in formato YAML
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
       ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
       ${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
@@ -356,6 +357,37 @@ var processa = (res) => {
                     }
                 }
                 break;
+            case "yaml":
+                if (getdb()) {
+                    try {
+                        
+                        r0 = r0.replaceAll(';', '');
+                        var oo=[];
+                        if (!r0) {
+                            var rr = db.tabelle();
+                        } else {
+                            rr=[r0]
+                        }
+                        console.log(rr);
+                        for (var r of rr) {
+                            oo.push(`\n${r}:`);
+                            var ff = db.campi(r,true);
+                            for (var f in ff) {
+                                if (f!='rowid') 
+                                oo.push(`  ${f}: "${ff[f].t}"`);   
+                            }
+                        }
+                        var out=oo.join(`\n`);
+                        clippa(`${out} \n`);
+                        stdout.write(`${out}\n`);
+            
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
+                    }
+                }
+                break;
+
+            
             case 'exp':
             case 'expfull':
                 if (getdb()) {
