@@ -112,13 +112,17 @@ var doselect = (db, s) => {
         for (var r in rr[0]) {
             fld.push(r);
         }
+    } else {
+        return true;
     }
+
     process.stdout.write(`${Green}${fld.join(',')}${Reset}\n`);
     for (var r of rr) {
         rx = [];
         for (var f of fld) rx.push(r[f]);
         process.stdout.write(`${rx.join(',')}\n`);
     }
+    return false;
 }
 var printdbs = () => {
     var rr = db.databases()
@@ -153,7 +157,7 @@ var dosql = (sql, modo) => {
                     if (!s.startsWith('select ')) {
                         if (s.trim()) db.run(s);
                     } else {
-                        doselect(db, s);
+                        return doselect(db, s);
                     }
                 }
             }
@@ -489,7 +493,11 @@ var processa = (res) => {
                     try {
                         if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`)
                         r = db.strselect(r1, true)
-                        dosql(r, false);
+                        //console.log(r);
+                        if (dosql(r, false)) {
+                            var tm= db.campi(r1);
+                            process.stdout.write(`${Green}rowid,${tm}${Reset}\n`);   
+                        }
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
