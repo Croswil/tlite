@@ -2,7 +2,7 @@
 const readline = require('readline');
 const path = require('path')
 const fs = require('fs');
-const XLSX = require('XLSX');
+const XLSX = require('xlsx');
 const { spawnSync } = require('child_process');
 var { database } = require('liburno_lib');
 var clippa = (txt) => {
