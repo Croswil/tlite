@@ -2,6 +2,7 @@
 const readline = require('readline');
 const path = require('path')
 const fs = require('fs');
+const XLSX = require('XLSX');
 const { spawnSync } = require('child_process');
 var { database } = require('liburno_lib');
 var clippa = (txt) => {
@@ -218,10 +219,12 @@ var processa = (res) => {
       ${Bold}tables/tabelle     ${Reset}Mostra le tabelle di un DB
       ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
       ${Bold}yaml <table>       ${Reset}Mostra struttura database/tabella in formato YAML
+      ${Bold}xexp <file> [table]${Reset}Esporta in formato XLSX una tabella,query o l'intero database (non inserire suffisso)
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
       ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
       ${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
-      ${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (lo stesso dell'esportazione)
+      ${Bold}ximp <file>        ${Reset}Importa il file dati nel formato XLSX (esportato con xexp)
+      ${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (exportato con exp)
                          Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
       ${Bold}! <comando...> ;   ${Reset}esegue il comando SQL senza risultato (chiudere con ${Bold}!${Reset})
       ${Bold}!c <comando...> ;  ${Reset}esegue il comando SQL per creare una tabella (chiudere con ${Bold}!${Reset})
@@ -364,34 +367,55 @@ var processa = (res) => {
             case "yaml":
                 if (getdb()) {
                     try {
-                        
+
                         r0 = r0.replaceAll(';', '');
-                        var oo=[];
+                        var oo = [];
                         if (!r0) {
                             var rr = db.tabelle();
                         } else {
-                            rr=[r0]
+                            rr = [r0]
                         }
                         console.log(rr);
                         for (var r of rr) {
                             oo.push(`\n${r}:`);
-                            var ff = db.campi(r,true);
+                            var ff = db.campi(r, true);
                             for (var f in ff) {
-                                if (f!='rowid') 
-                                oo.push(`  ${f}: "${ff[f].t}"`);   
+                                if (f != 'rowid')
+                                    oo.push(`  ${f}: "${ff[f].t}"`);
                             }
                         }
-                        var out=oo.join(`\n`);
+                        var out = oo.join(`\n`);
                         clippa(`${out} \n`);
                         stdout.write(`${out}\n`);
-            
+
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
+                    }
+                }
+                break;
+            case 'xexp':
+                if (getdb()) {
+                    try {
+                        var file = resplit.splice(0, 1)
+                        file = file && file[0] ? file[0].toLowerCase() : ''
+                        r0 = resplit.join(' ');
+                        if (!r0) {
+                            r0 = file;
+                        }
+                        var rq = db.export(r0, false)
+                        const worksheet = XLSX.utils.json_to_sheet(rq);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, file);
+                        XLSX.writeFile(workbook, `${file}.xlsx`, { compression: true });
+                        stdout.write(`write: ${Bold}${file}.xlsx${Reset}\n`);
+             
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
                 }
                 break;
 
-            
+
             case 'exp':
             case 'expfull':
                 if (getdb()) {
@@ -432,6 +456,27 @@ var processa = (res) => {
                     }
                 }
 
+                break;
+            case 'ximp':
+                if (getdb()) {
+                    try {
+                        var file = resplit.splice(0, 1);
+                        file = file && file[0] ? file[0].toLowerCase() : ''
+                        r0 = resplit.join(' ');
+                        if (!r0) {
+                            r0 = file;
+                        }
+                        var f2 = `${file}.xlsx`;
+                        if (fs.existsSync(f2)) {
+                            var workbook = XLSX.readFile(f2);
+                            var ws = workbook.Sheets[file]
+                            var rq = XLSX.utils.sheet_to_json(ws)
+                            db.import(r0, rq);
+                        }
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
+                    }
+                }
                 break;
             case '!':
             case '!c':
@@ -495,8 +540,8 @@ var processa = (res) => {
                         r = db.strselect(r1, true)
                         //console.log(r);
                         if (dosql(r, false)) {
-                            var tm= db.campi(r1);
-                            process.stdout.write(`${Green}rowid,${tm}${Reset}\n`);   
+                            var tm = db.campi(r1);
+                            process.stdout.write(`${Green}rowid,${tm}${Reset}\n`);
                         }
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
