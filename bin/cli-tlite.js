@@ -221,6 +221,7 @@ var processa = (res) => {
       ${Bold}yaml <table>       ${Reset}Mostra struttura database/tabella in formato YAML
       ${Bold}xexp <file> [table]${Reset}Esporta in formato XLSX una tabella,query o l'intero database (non inserire suffisso)
       ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
+      ${Bold}csvexp     [table] ${Reset}Esporta in formato CSV una tabella,query
       ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
       ${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
       ${Bold}ximp <file>        ${Reset}Importa il file dati nel formato XLSX (esportato con xexp)
@@ -436,6 +437,41 @@ var processa = (res) => {
                     }
                 }
                 break;
+            case "csvexp": 
+                if (getdb()) {
+                    try {
+                        var file = resplit.splice(0, 1)
+                        file = file && file[0] ? file[0].toLowerCase() : ''
+                        r0 = resplit.join(' ');
+                        if (!r0) {
+                            r0 = file;
+                            file = file + '.csv';
+                        }
+                        var rq = db.export(r0, true)
+                        var cl=[];
+                        var c2=[];
+                        
+
+                        for (var x in rq.flds) cl.push(x);
+                        c2.push(cl.join('\t'));
+                        for (var r of rq.data) {
+                            cl=[];
+                            for (var x in rq.flds) {
+                                cl.push(r[x] || '');   
+                            }
+                            c2.push(cl.join('\t'));
+                        }
+                        
+                        if (fs.existsSync(file)) fs.unlinkSync(file);
+                        fs.writeFileSync(file, c2.join('\n'));
+                        stdout.write(`write: ${Bold}${file}${Reset}\n`);
+                    } catch (e) {
+                        stdout.write(`${Red}${e}${Reset}\n`);
+                    }
+                }
+                
+
+                break;
             case 'imp':
                 if (getdb()) {
                     try {
@@ -536,6 +572,7 @@ var processa = (res) => {
             case '.':
                 if (getdb()) {
                     try {
+                        console.log(r0);
                         if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`)
                         r = db.strselect(r1, true)
                         //console.log(r);
@@ -577,7 +614,7 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     process.exit(0);
 } else {
 
-    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2022
+    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2023
 ${Green}SqlLite+FTS5 CLI tool
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
