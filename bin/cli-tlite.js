@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-const readline = require('readline');
-const path = require('path')
-const fs = require('fs');
-const XLSX = require('xlsx');
-const { spawnSync } = require('child_process');
-var { database } = require('liburno_lib');
+import readline  from 'readline';
+import path  from 'path'
+import fs from 'fs';
+import XLSX from 'xlsx';
+import  { spawnSync } from 'child_process';
+import  { database } from 'liburno_lib';
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
         spawnSync('pbcopy', { input: txt });
@@ -152,7 +152,12 @@ var dosql = (sql, modo) => {
 
                 clippa(r1.join('\n'));
             } else {
-                var ss = database.splitsql(sql);
+                var ss;
+                if (/^\s*(select|insert|delete|update)\s+/i.test(sql)) {
+                    ss=[sql];
+                } else {
+                    ss= database.splitsql(sql);
+                }
                 for (var s of ss) {
                     s = s.trim();
                     if (!s.startsWith('select ')) {
@@ -572,10 +577,11 @@ var processa = (res) => {
             case '.':
                 if (getdb()) {
                     try {
-                        console.log(r0);
                         if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`)
-                        r = db.strselect(r1, true)
-                        //console.log(r);
+                        r = db.strselect(r1,true)
+                        if (r0) {
+                            r=r.split('order by')[0]+' '+r0
+                        }
                         if (dosql(r, false)) {
                             var tm = db.campi(r1);
                             process.stdout.write(`${Green}rowid,${tm}${Reset}\n`);
