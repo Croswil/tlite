@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import readline  from 'readline';
-import path  from 'path'
+import readline from 'readline';
+import path from 'path'
 import fs from 'fs';
 import XLSX from 'xlsx';
-import  { spawnSync } from 'child_process';
-import  { database } from 'liburno_lib';
+import { spawnSync } from 'child_process';
+import { database } from 'liburno_lib';
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
         spawnSync('pbcopy', { input: txt });
@@ -65,18 +65,18 @@ var getdb = (noerr = false) => {
     }
     return false;
 }
+var lasts = {
+    data: [],
+    short: true,
+};
 
 
 { // ------------------------- gestione degli ultimi files inseriti 
     var filelast = '.lasts.tlite';
-    var lasts = {
-        data: []
-    };
     if (fs.existsSync(filelast)) {
         var tm = JSON.parse(fs.readFileSync(filelast));
         if (tm && tm.data && Array.isArray(tm.data)) lasts = tm;
     }
-
     var pushlast = (file) => {
         for (var i = 0; i < lasts.data.length; i++) {
             var d = lasts.data[i];
@@ -120,7 +120,13 @@ var doselect = (db, s) => {
     process.stdout.write(`${Green}${fld.join(',')}${Reset}\n`);
     for (var r of rr) {
         rx = [];
-        for (var f of fld) rx.push(r[f]);
+        for (var f of fld) {
+            var a = r[f];
+            if (lasts.short && typeof (a) == 'string' && a.length > 20 && (a.startsWith('{') || a.startsWith('['))) {
+                a = '<JSON>';
+            }
+            rx.push(a);
+        }
         process.stdout.write(`${rx.join(',')}\n`);
     }
     return false;
@@ -154,9 +160,9 @@ var dosql = (sql, modo) => {
             } else {
                 var ss;
                 if (/^\s*(select|insert|delete|update)\s+/i.test(sql)) {
-                    ss=[sql];
+                    ss = [sql];
                 } else {
-                    ss= database.splitsql(sql);
+                    ss = database.splitsql(sql);
                 }
                 for (var s of ss) {
                     s = s.trim();
@@ -218,6 +224,7 @@ var processa = (res) => {
       ${Bold}use [file]         ${Reset}Mostra/Imposta il database in uso
       ${Bold}close,chiudi       ${Reset}Chiudi il database corrente
       ${Bold}last,db,lastdb     ${Reset}Mostra l'elenco degli ultimi db utilizzati
+      ${Bold}jshort [1,0]       ${Reset}Imposta la visualizzazione record json (1=full, 0 no)
       ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
       ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
       ${Bold}detach <nn>        ${Reset}Scollega il database collegato
@@ -294,6 +301,10 @@ var processa = (res) => {
                     }
                     mmenu = true;
                 }
+                break;
+            case 'jshort':
+                lasts.short = parseInt(r0) ? 1 : 0
+                fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 break;
             case 'attach':
                 if (getdb()) {
@@ -414,7 +425,7 @@ var processa = (res) => {
                         XLSX.utils.book_append_sheet(workbook, worksheet, file);
                         XLSX.writeFile(workbook, `${file}.xlsx`, { compression: true });
                         stdout.write(`write: ${Bold}${file}.xlsx${Reset}\n`);
-             
+
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -434,6 +445,18 @@ var processa = (res) => {
                             file = file + '.json';
                         }
                         var rq = db.export(r0, r1 === 'expfull')
+                        for (var r of rq) {
+                            for (var x in r) {
+                                var a = r[x];
+                                if (typeof (a) == 'string'
+                                    && (a.startsWith('{') || a.startsWith('['))
+                                    && (a.endsWith('}') || a.endsWith(']'))) {
+                                    r[x] = JSON.parse(a);
+                                }
+                            }
+                        }
+
+
                         if (fs.existsSync(file)) fs.unlinkSync(file);
                         fs.writeFileSync(file, JSON.stringify(rq, null, 2));
                         stdout.write(`write: ${Bold}${file}${Reset}\n`);
@@ -442,7 +465,7 @@ var processa = (res) => {
                     }
                 }
                 break;
-            case "csvexp": 
+            case "csvexp":
                 if (getdb()) {
                     try {
                         var file = resplit.splice(0, 1)
@@ -453,20 +476,20 @@ var processa = (res) => {
                             file = file + '.csv';
                         }
                         var rq = db.export(r0, true)
-                        var cl=[];
-                        var c2=[];
-                        
+                        var cl = [];
+                        var c2 = [];
+
 
                         for (var x in rq.flds) cl.push(x);
                         c2.push(cl.join('\t'));
                         for (var r of rq.data) {
-                            cl=[];
+                            cl = [];
                             for (var x in rq.flds) {
-                                cl.push(r[x] || '');   
+                                cl.push(r[x] || '');
                             }
                             c2.push(cl.join('\t'));
                         }
-                        
+
                         if (fs.existsSync(file)) fs.unlinkSync(file);
                         fs.writeFileSync(file, c2.join('\n'));
                         stdout.write(`write: ${Bold}${file}${Reset}\n`);
@@ -474,7 +497,7 @@ var processa = (res) => {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
                 }
-                
+
 
                 break;
             case 'imp':
@@ -489,6 +512,14 @@ var processa = (res) => {
                         }
                         if (fs.existsSync(file)) {
                             var rq = JSON.parse(fs.readFileSync(file));
+                            for (var r of rq) {
+                                for (var x in r) {
+                                    var a = r[x];
+                                    if (a && typeof (a) == 'object') {
+                                        r[x] = JSON.stringify(a);
+                                    }
+                                }
+                            }
                             db.import(r0, rq);
                         }
 
@@ -578,9 +609,9 @@ var processa = (res) => {
                 if (getdb()) {
                     try {
                         if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`)
-                        r = db.strselect(r1,true)
+                        r = db.strselect(r1, true)
                         if (r0) {
-                            r=r.split('order by')[0]+' '+r0
+                            r = r.split('order by')[0] + ' ' + r0
                         }
                         if (dosql(r, false)) {
                             var tm = db.campi(r1);
