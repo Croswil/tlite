@@ -2,9 +2,11 @@
 import readline from 'readline';
 import path from 'path'
 import fs from 'fs';
+import os from 'os';
 import XLSX from 'xlsx';
 import { spawnSync } from 'child_process';
 import { database } from 'liburno_lib';
+
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
         spawnSync('pbcopy', { input: txt });
@@ -12,6 +14,9 @@ var clippa = (txt) => {
         spawnSync('xsel', ['--clipboard', '--input'], { input: txt });
     }
 }
+
+
+
 function getip() {
 
     var folder = "/etc/nginx/sites-available"
@@ -65,6 +70,20 @@ var getdb = (noerr = false) => {
     }
     return false;
 }
+function getfileout(r0) {
+    if (Array.isArray(r0)) r0 = r0.join(' ');
+    var tm = path.parse(dbname);
+
+
+    if (tm && tm.dir) {
+        if (tm.dir.startsWith('~')) {
+            tm.dir = path.resolve(os.homedir(), tm.dir.slice(2));
+        }
+        return r0 ? path.join(tm.dir, r0) : path.join(tm.dir, tm.name + '_db');
+    }
+    return r0 ? r0 : 'out';
+}
+
 var lasts = {
     data: [],
     short: true,
@@ -123,7 +142,7 @@ var doselect = (db, s) => {
         for (var f of fld) {
             var a = r[f];
             if (lasts.short && typeof (a) == 'string' && a.length > 20 && (a.startsWith('{') || a.startsWith('['))) {
-                a = '<JSON>';
+                a = `${Red}JSON${Reset}`;
             }
             rx.push(a);
         }
@@ -413,16 +432,16 @@ var processa = (res) => {
             case 'xexp':
                 if (getdb()) {
                     try {
-                        var file = resplit.splice(0, 1)
-                        file = file && file[0] ? file[0].toLowerCase() : ''
-                        r0 = resplit.join(' ');
-                        if (!r0) {
-                            r0 = file;
+                        var f2 = resplit[0];
+                        var file = getfileout(f2)
+                        if (resplit.length > 1) {
+                            resplit.splice(0, 1);
+                            r0 = resplit.join(' ');
                         }
                         var rq = db.export(r0, false)
                         const worksheet = XLSX.utils.json_to_sheet(rq);
                         const workbook = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(workbook, worksheet, file);
+                        XLSX.utils.book_append_sheet(workbook, worksheet, f2);
                         XLSX.writeFile(workbook, `${file}.xlsx`, { compression: true });
                         stdout.write(`write: ${Bold}${file}.xlsx${Reset}\n`);
 
@@ -437,25 +456,24 @@ var processa = (res) => {
             case 'expfull':
                 if (getdb()) {
                     try {
-                        var file = resplit.splice(0, 1)
-                        file = file && file[0] ? file[0].toLowerCase() : ''
-                        r0 = resplit.join(' ');
-                        if (!r0) {
-                            r0 = file;
-                            file = file + '.json';
+                        var file = getfileout(resplit[0]) + '.json'
+                        if (resplit.length > 1) {
+                            resplit.splice(0, 1);
+                            r0 = resplit.join(' ');
                         }
                         var rq = db.export(r0, r1 === 'expfull')
-                        for (var r of rq) {
-                            for (var x in r) {
-                                var a = r[x];
-                                if (typeof (a) == 'string'
-                                    && (a.startsWith('{') || a.startsWith('['))
-                                    && (a.endsWith('}') || a.endsWith(']'))) {
-                                    r[x] = JSON.parse(a);
+                        if (r0) {
+                            for (var r of rq) {
+                                for (var x in r) {
+                                    var a = r[x];
+                                    if (typeof (a) == 'string'
+                                        && (a.startsWith('{') || a.startsWith('['))
+                                        && (a.endsWith('}') || a.endsWith(']'))) {
+                                        r[x] = JSON.parse(a);
+                                    }
                                 }
                             }
                         }
-
 
                         if (fs.existsSync(file)) fs.unlinkSync(file);
                         fs.writeFileSync(file, JSON.stringify(rq, null, 2));
@@ -468,31 +486,63 @@ var processa = (res) => {
             case "csvexp":
                 if (getdb()) {
                     try {
-                        var file = resplit.splice(0, 1)
-                        file = file && file[0] ? file[0].toLowerCase() : ''
-                        r0 = resplit.join(' ');
-                        if (!r0) {
-                            r0 = file;
-                            file = file + '.csv';
-                        }
-                        var rq = db.export(r0, true)
-                        var cl = [];
-                        var c2 = [];
-
-
-                        for (var x in rq.flds) cl.push(x);
-                        c2.push(cl.join('\t'));
-                        for (var r of rq.data) {
-                            cl = [];
-                            for (var x in rq.flds) {
-                                cl.push(r[x] || '');
+                        function csvcampo(t) {
+                            if (typeof (t) == 'number') t = '' + t;
+                            if (t.includes('\t') || t.includes('\n') || t.includes('"')) {
+                                t = `"${t.replace(/"/g, '""')}"`
                             }
-                            c2.push(cl.join('\t'));
+                            return t;
                         }
 
-                        if (fs.existsSync(file)) fs.unlinkSync(file);
-                        fs.writeFileSync(file, c2.join('\n'));
-                        stdout.write(`write: ${Bold}${file}${Reset}\n`);
+
+                        var f2 = resplit[0];
+                        var file = getfileout(f2) + '.csv'
+                        var fl = false;
+                        if (resplit.length > 1) {
+                            resplit.splice(0, 1);
+                            r0 = resplit.join(' ');
+                            fl = true;
+                        }
+                        if (r0) {
+                            var cl = [];
+                            var c2 = [];
+                            if (!fl) {
+                                var rq = db.export(r0, true)
+                                for (var x in rq.flds) cl.push(x);
+                                c2.push(cl.join('\t'));
+                                for (var r of rq.data) {
+                                    cl = [];
+                                    for (var x in rq.flds) {
+                                        cl.push(csvcampo(r[x] || ''));
+                                    }
+                                    c2.push(cl.join('\t'));
+                                }
+                            } else {
+                                var rq = db.export(r0);
+                                for (var r of rq) {
+                                    if (fl) {
+                                        cl = [];
+                                        for (var x in r) {
+                                            cl.push(x);
+                                        }
+                                        fl = false;
+                                        c2.push(cl.join('\t'));
+                                    }
+                                    cl = [];
+                                    for (var x in r) {
+                                        cl.push(csvcampo(r[x] || ''));
+                                    }
+                                    c2.push(cl.join('\t'));
+
+
+                                }
+                            }
+                            if (fs.existsSync(file)) fs.unlinkSync(file);
+                            fs.writeFileSync(file, c2.join('\n'));
+                            stdout.write(`write: ${Bold}${file}${Reset}\n`);
+                        } else {
+                            stdout.write(`must specify a table\n`);
+                        }
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -503,20 +553,17 @@ var processa = (res) => {
             case 'imp':
                 if (getdb()) {
                     try {
-                        var file = resplit.splice(0, 1);
-                        file = file && file[0] ? file[0].toLowerCase() : ''
-                        r0 = resplit.join(' ');
-                        if (!r0) {
-                            r0 = file;
-                            file = file + '.json';
-                        }
+                        var f2 = resplit[0];
+                        var file = getfileout(f2) + '.json'
                         if (fs.existsSync(file)) {
                             var rq = JSON.parse(fs.readFileSync(file));
-                            for (var r of rq) {
-                                for (var x in r) {
-                                    var a = r[x];
-                                    if (a && typeof (a) == 'object') {
-                                        r[x] = JSON.stringify(a);
+                            if (r0) {
+                                for (var r of rq) {
+                                    for (var x in r) {
+                                        var a = r[x];
+                                        if (a && typeof (a) == 'object') {
+                                            r[x] = JSON.stringify(a);
+                                        }
                                     }
                                 }
                             }
@@ -532,18 +579,14 @@ var processa = (res) => {
             case 'ximp':
                 if (getdb()) {
                     try {
-                        var file = resplit.splice(0, 1);
-                        file = file && file[0] ? file[0].toLowerCase() : ''
-                        r0 = resplit.join(' ');
-                        if (!r0) {
-                            r0 = file;
-                        }
-                        var f2 = `${file}.xlsx`;
-                        if (fs.existsSync(f2)) {
-                            var workbook = XLSX.readFile(f2);
-                            var ws = workbook.Sheets[file]
-                            var rq = XLSX.utils.sheet_to_json(ws)
-                            db.import(r0, rq);
+                        if (r0) {
+                            var file = getfileout(r0) + '.xlsx'
+                            if (fs.existsSync(file)) {
+                                var workbook = XLSX.readFile(file);
+                                var ws = workbook.Sheets[r0]
+                                var rq = XLSX.utils.sheet_to_json(ws)
+                                db.import(r0, rq);
+                            }
                         }
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
