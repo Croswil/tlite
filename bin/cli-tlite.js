@@ -73,13 +73,20 @@ var getdb = (noerr = false) => {
 function getfileout(r0) {
     if (Array.isArray(r0)) r0 = r0.join(' ');
     var tm = path.parse(dbname);
-
-
     if (tm && tm.dir) {
-        if (tm.dir.startsWith('~')) {
-            tm.dir = path.resolve(os.homedir(), tm.dir.slice(2));
+        var outdir;
+        if (lasts.outdir) {
+            outdir = lasts.outdir;
+        } else {
+            outdir = path.join(tm?.dir, 'out');
         }
-        return r0 ? path.join(tm.dir, r0) : path.join(tm.dir, tm.name + '_db');
+        if (outdir.startsWith('~')) {
+            outdir = path.resolve(os.homedir(), outdir.slice(2));
+        }
+        if (!fs.existsSync(outdir)) {
+            fs.mkdirSync(outdir, true);
+        }
+        return r0 ? path.join(outdir, r0) : path.join(outdir, tm.name + '_db');
     }
     return r0 ? r0 : 'out';
 }
@@ -87,6 +94,7 @@ function getfileout(r0) {
 var lasts = {
     data: [],
     short: true,
+    outdir: ''
 };
 
 
@@ -244,6 +252,7 @@ var processa = (res) => {
       ${Bold}close,chiudi       ${Reset}Chiudi il database corrente
       ${Bold}last,db,lastdb     ${Reset}Mostra l'elenco degli ultimi db utilizzati
       ${Bold}jshort [1,0]       ${Reset}Imposta la visualizzazione record json (1=full, 0 no)
+      ${Bold}outdir <folder>    ${Reset}Imposta la cartella di output per esportazioni (. per default)
       ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
       ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
       ${Bold}detach <nn>        ${Reset}Scollega il database collegato
@@ -324,6 +333,14 @@ var processa = (res) => {
             case 'jshort':
                 lasts.short = parseInt(r0) ? 1 : 0
                 fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
+                break;
+            case 'outdir':
+                if (r0) {
+                    lasts.outdir = r0 == '.' ? '' : r0
+                    fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
+                }
+                stdout.write(`${Green}OutDir: ${Bold}${lasts.outdir}${Reset}\n`);
+
                 break;
             case 'attach':
                 if (getdb()) {
@@ -568,6 +585,11 @@ var processa = (res) => {
                                 }
                             }
                             db.import(r0, rq);
+                            stdout.write(`read: ${Bold}${file}${Reset}\n`);
+
+                        } else {
+                            stdout.write(`${Red}File non Trovato: ${file}${Reset}\n`);
+
                         }
 
                     } catch (e) {
