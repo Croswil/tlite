@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs';
 import os from 'os';
 import XLSX from 'xlsx';
-import { spawnSync } from 'child_process';
+import { spawnSync, execSync } from 'child_process';
 import { database } from 'liburno_lib';
 
 var clippa = (txt) => {
@@ -14,8 +14,16 @@ var clippa = (txt) => {
         spawnSync('xsel', ['--clipboard', '--input'], { input: txt });
     }
 }
+var getclip = () => {
+    let clipContent;
+    if (process.platform == 'darwin') {
+        clipContent = spawnSync('pbpaste').stdout.toString();
+    } else {
+        clipContent = spawnSync('xsel', ['--clipboard', '--output']).stdout.toString();
+    }
 
-
+    return clipContent;
+}
 
 function getip() {
 
@@ -133,8 +141,14 @@ const rl = readline.createInterface({
 
 
 var doselect = (db, s) => {
+    var cl = [];
+    var rr = /(\[[^\]]*\])/gim.exec(s)
+    if (rr) {
+        s = s.substr(0, rr.index);
+        cl = JSON.parse(rr[1]);
+    }
     if (s.indexOf(' limit') < 1) s += ' limit 20' // max 20 righe;
-    var rr = db.prepare(s).all();
+    var rr = db.prepare(s).all(...cl);
     var fld = [], rx = [];
     if (rr && rr.length > 0) {
         for (var r in rr[0]) {
@@ -168,7 +182,6 @@ var printdbs = () => {
 var dosql = (sql, modo) => {
     startast = false;
     if (sql.length > 1 && sql[sql.length - 1] == '!') sql = sql.substr(0, sql.length - 1);
-    clippa(sql);
     if (getdb()) {
         try {
             if (modo) {
@@ -191,10 +204,28 @@ var dosql = (sql, modo) => {
                 } else {
                     ss = database.splitsql(sql);
                 }
+                if (ss.length > 1 || ss[0].includes('\n')) {
+                    for (var i = 0; i < ss.length; i++) {
+                        ss[i] = ss[i].split('\n').filter(e => e.trim()).join('\n');
+                    }
+                    clippa(['!', ...ss, '!'].join('\n'));
+                } else {
+                    clippa(ss.join('\n'));
+                }
+
+
                 for (var s of ss) {
                     s = s.trim();
                     if (!s.startsWith('select ')) {
-                        if (s.trim()) db.run(s);
+                        if (s.trim()) {
+                            var cl = [];
+                            var rr = /(\[[^\]]*\])/gim.exec(s)
+                            if (rr) {
+                                s = s.substr(0, rr.index);
+                                cl = JSON.parse(rr[1]);
+                            }
+                            db.run(s, ...cl);
+                        }
                     } else {
                         return doselect(db, s);
                     }
@@ -247,36 +278,37 @@ var processa = (res) => {
             case 'help':
             case '?':
                 stdout.write(`${Reset}Help comandi ${Bold}Tlite${Reset}:
-      ${Bold}h,help,?           ${Reset}Documentazione delle funzioni di sistema
-      ${Bold}use [file]         ${Reset}Mostra/Imposta il database in uso
-      ${Bold}close,chiudi       ${Reset}Chiudi il database corrente
-      ${Bold}last,db,lastdb     ${Reset}Mostra l'elenco degli ultimi db utilizzati
-      ${Bold}jshort [1,0]       ${Reset}Imposta la visualizzazione record json (1=full, 0 no)
-      ${Bold}outdir <folder>    ${Reset}Imposta la cartella di output per esportazioni (. per default)
-      ${Bold}schema[d] [table]  ${Reset}Mostra sql con la creazione del database / Tabella
-      ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
-      ${Bold}detach <nn>        ${Reset}Scollega il database collegato
-      ${Bold}tables/tabelle     ${Reset}Mostra le tabelle di un DB
-      ${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
-      ${Bold}yaml <table>       ${Reset}Mostra struttura database/tabella in formato YAML
-      ${Bold}xexp <file> [table]${Reset}Esporta in formato XLSX una tabella,query o l'intero database (non inserire suffisso)
-      ${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
-      ${Bold}csvexp     [table] ${Reset}Esporta in formato CSV una tabella,query
-      ${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
-      ${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
-      ${Bold}ximp <file>        ${Reset}Importa il file dati nel formato XLSX (esportato con xexp)
-      ${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (exportato con exp)
-                         Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
-      ${Bold}! <comando...> ;   ${Reset}esegue il comando SQL senza risultato (chiudere con ${Bold}!${Reset})
-      ${Bold}!c <comando...> ;  ${Reset}esegue il comando SQL per creare una tabella (chiudere con ${Bold}!${Reset})
-      ${Bold}i <table>          ${Reset}Genera il comando SQL per l'insert sulla tabella 
-      ${Bold}d <table>          ${Reset}Genera il comando SQL per il delete sulla tabella 
-      ${Bold}s,so <table>       ${Reset}Genera il comando SQL per il select sulla tabella (so=order)
-      ${Bold}u <table>          ${Reset}Genera il comando SQL per l'update sulla tabella 
-      ${Bold}v <table> [cerca]  ${Reset}Genera il comando SQL per la ricerca FTS5. se impostato cerca torna anche i dati
-      ${Bold}.<table>           ${Reset}Mostra il contenuto della tabella
-      ${Bold}q,quit             ${Reset}Esci 
-      `)
+${Bold}h, help,?${Reset}Documentazione delle funzioni di sistema
+${Bold}use[file]          ${Reset}Mostra / Imposta il database in uso
+${Bold}close, chiudi      ${Reset}Chiudi il database corrente
+${Bold}last, db, lastdb   ${Reset}Mostra l'elenco degli ultimi db utilizzati
+${Bold}jshort[1, 0]       ${Reset}Imposta la visualizzazione record json(1 = full, 0 no)
+${Bold}outdir <folder>    ${Reset}Imposta la cartella di output per esportazioni(.per default )
+${Bold}schema[d][table]   ${Reset}Mostra sql con la creazione del database / Tabella
+${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
+${Bold}detach <nn>        ${Reset}Scollega il database collegato
+${Bold}tables/tabelle     ${Reset}Mostra le tabelle di un DB
+${Bold}fields <table>     ${Reset}Mostra i campi di una tabella (usare anche campi <table>)
+${Bold}yaml <table>       ${Reset}Mostra struttura database/tabella in formato YAML
+${Bold}xexp <file> [table]${Reset}Esporta in formato XLSX una tabella,query o l'intero database (non inserire suffisso)
+${Bold}exp <file> [table] ${Reset}Esporta in formato json una tabella,query o l'intero database
+${Bold}csvexp     [table] ${Reset}Esporta in formato CSV una tabella,query
+${Bold}expfull...         ${Reset}Come exp, solo per le tabelle esporta anche la struttura
+${Bold}md/md5 <pass>      ${Reset}Restituisce formato md5 (password o altri testi)
+${Bold}ximp <file>        ${Reset}Importa il file dati nel formato XLSX (esportato con xexp)
+${Bold}imp <file>         ${Reset}Importa il file dati nel formato JSON (exportato con exp)
+Attenzione: La tabella di import deve esistere e i dati vengono completamente sovrascritti
+${Bold}! <comando...> ;   ${Reset}esegue il comando SQL senza risultato (chiudere con ${Bold}!${Reset})
+${Bold}!c <comando...> ;  ${Reset}esegue il comando SQL per creare una tabella (chiudere con ${Bold}!${Reset})
+${Bold}i <table>          ${Reset}Genera il comando SQL per l'insert sulla tabella
+${Bold}d <table>          ${Reset}Genera il comando SQL per il delete sulla tabella
+${Bold}s,so <table>       ${Reset}Genera il comando SQL per il select sulla tabella (so=order)
+${Bold}u <table>          ${Reset}Genera il comando SQL per l'update sulla tabella
+${Bold}v <table> [cerca]  ${Reset}Genera il comando SQL per la ricerca FTS5. se impostato cerca torna anche i dati
+${Bold}.<table>           ${Reset}Mostra il contenuto della tabella
+${Bold}!!                 ${Reset}Apre nano con la clipboard
+${Bold}q,quit             ${Reset}Esci
+`)
                 break;
             case 'getip':
                 getip();
@@ -300,6 +332,16 @@ var processa = (res) => {
                 } else {
                     stdout.write(`Database: ${Bold}${Green}${dbname}${Reset}\n`);
                 }
+                break;
+            case '!!':
+                let tempFile = path.join(os.tmpdir(), '.tlite_tmp');
+                var clp = getclip().replaceAll(/^\s*\!\s*\n?/gim, '').replaceAll(/\!\s*$/gim, '');
+                fs.writeFileSync(tempFile, clp);
+                execSync(`nano ${tempFile}`, { stdio: 'inherit' });
+                let editedContent = fs.readFileSync(tempFile, 'utf-8');
+                fs.unlinkSync(tempFile);
+                dosql(editedContent, /^\s*c\s+\w/gim.test(editedContent));
+                ressql = false
                 break;
             case 'md':
             case 'md5':
