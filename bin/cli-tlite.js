@@ -147,6 +147,9 @@ var doselect = (db, s) => {
         s = s.substr(0, rr.index);
         cl = JSON.parse(rr[1]);
     }
+    if (s.startsWith('e ')) {
+        s = 'explain query plan ' + s.substr(2);
+    }
     if (s.indexOf(' limit') < 1) s += ' limit 20' // max 20 righe;
     var rr = db.prepare(s).all(...cl);
     var fld = [], rx = [];
@@ -182,6 +185,9 @@ var printdbs = () => {
 var dosql = (sql, modo) => {
     startast = false;
     if (sql.length > 1 && sql[sql.length - 1] == '!') sql = sql.substr(0, sql.length - 1);
+
+
+
     if (getdb()) {
         try {
             if (modo) {
@@ -199,7 +205,8 @@ var dosql = (sql, modo) => {
                 clippa(r1.join('\n'));
             } else {
                 var ss;
-                if (/^\s*(select|insert|delete|update)\s+/i.test(sql)) {
+
+                if (/^\s*(select|insert|delete|update|e)\s+/i.test(sql)) {
                     ss = [sql];
                 } else {
                     ss = database.splitsql(sql);
@@ -216,7 +223,7 @@ var dosql = (sql, modo) => {
 
                 for (var s of ss) {
                     s = s.trim();
-                    if (!s.startsWith('select ')) {
+                    if (!/^\s*(select|e)\s+/i.test(s)) {
                         if (s.trim()) {
                             var cl = [];
                             var rr = /(\[[^\]]*\])/gim.exec(s)
@@ -303,6 +310,7 @@ ${Bold}!c <comando...> ;  ${Reset}esegue il comando SQL per creare una tabella (
 ${Bold}i <table>          ${Reset}Genera il comando SQL per l'insert sulla tabella
 ${Bold}d <table>          ${Reset}Genera il comando SQL per il delete sulla tabella
 ${Bold}s,so <table>       ${Reset}Genera il comando SQL per il select sulla tabella (so=order)
+${Bold}e <sql>            ${Reset}Explain Query
 ${Bold}u <table>          ${Reset}Genera il comando SQL per l'update sulla tabella
 ${Bold}v <table> [cerca]  ${Reset}Genera il comando SQL per la ricerca FTS5. se impostato cerca torna anche i dati
 ${Bold}.<table>           ${Reset}Mostra il contenuto della tabella
@@ -676,6 +684,7 @@ ${Bold}q,quit             ${Reset}Esci
             case "alter":
             case "create":
             case "vacuum":
+            case "e":
                 dosql(r1 + ' ' + r0, false);
                 break;
             case 'i':
