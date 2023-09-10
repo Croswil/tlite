@@ -560,8 +560,6 @@ ${Bold}q,quit             ${Reset}Esci
                             }
                             return t;
                         }
-
-
                         var f2 = resplit[0];
                         var file = getfileout(f2) + '.csv'
                         var fl = false;
@@ -600,8 +598,6 @@ ${Bold}q,quit             ${Reset}Esci
                                         cl.push(csvcampo(r[x] || ''));
                                     }
                                     c2.push(cl.join('\t'));
-
-
                                 }
                             }
                             if (fs.existsSync(file)) fs.unlinkSync(file);
@@ -614,8 +610,6 @@ ${Bold}q,quit             ${Reset}Esci
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
                 }
-
-
                 break;
             case 'imp':
                 if (getdb()) {
@@ -639,14 +633,11 @@ ${Bold}q,quit             ${Reset}Esci
 
                         } else {
                             stdout.write(`${Red}File non Trovato: ${file}${Reset}\n`);
-
                         }
-
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
                 }
-
                 break;
             case 'ximp':
                 if (getdb()) {
