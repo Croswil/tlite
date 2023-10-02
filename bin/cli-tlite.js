@@ -14,6 +14,7 @@ var clippa = (txt) => {
         spawnSync('xsel', ['--clipboard', '--input'], { input: txt });
     }
 }
+
 var getclip = () => {
     let clipContent;
     if (process.platform == 'darwin') {
@@ -25,6 +26,22 @@ var getclip = () => {
     return clipContent;
 }
 
+function checkcartellabackup(folderPath) {
+    // Verifica se la cartella esiste
+    if (!fs.existsSync(folderPath)) {
+        // Se non esiste, creala
+        fs.mkdirSync(folderPath);
+    } else {
+        // Se esiste, ottieni l'elenco di tutti i file nella cartella
+        const files = fs.readdirSync(folderPath);
+
+        // Rimuovi ogni file nella cartella
+        for (const file of files) {
+            const filePath = path.join(folderPath, file);
+            fs.unlinkSync(filePath);
+        }
+    }
+}
 function getip() {
 
     var folder = "/etc/nginx/sites-available"
@@ -756,7 +773,78 @@ var xx = process.argv[2];
 if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     getip()
     process.exit(0);
-} else {
+} else if (xx && xx == 'backup') {
+    var ff = process.argv[3];
+
+    if (!ff || !fs.existsSync(ff)) {
+        process.stdout.write(`manca il nome del database\n`);
+    } else {
+        var pc = path.parse(ff);
+        var outfile = process.argv[4];
+        if (!outfile) { outfile = path.join(pc.dir, `db_${pc.name}`); }
+        else {
+            var k = path.parse(outfile);
+            outfile = path.join(k.dir, 'db_' + k.name);
+        }
+
+        pc.outfile = outfile;
+        checkcartellabackup(pc.outfile);
+        var d1 = new Date().valueOf();
+        dbname = ff;
+        db = database.db(ff);
+        var schema = db.schema()
+        fs.writeFileSync(path.join(pc.outfile, `schema.sql`), schema);
+        var tabelle = db.tabelle();
+        for (var rr of tabelle) {
+            var xx = db.campi(rr);
+            var sql = `select rowid,${xx.join(',')} from ${rr}`;
+            fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 2));
+        }
+        var d1 = new Date().valueOf() - d1;
+
+        console.log("tempo ms:", d1);
+        db.chiudi();
+    }
+    process.exit(0);
+} else if (xx && xx == 'restore') {
+    var ff = process.argv[3];
+    var k = path.parse(ff);
+    outfile = path.join(k.dir, 'db_' + k.name);
+    if (!fs.existsSync(path.join(outfile, 'schema.sql'))) {
+        console.log(`manca la cartella di ripristino:`, outfile);
+    } else {
+        var d1 = new Date().valueOf();
+        dbname = path.join(k.dir, k.name + '.db');
+        if (fs.existsSync(dbname)) fs.unlinkSync(dbname);
+        db = database.db(dbname);
+        db.begin();
+        var sql = fs.readFileSync(path.join(outfile, 'schema.sql')).toString();
+        db.run(sql);
+        var tabelle = db.tabelle();
+        for (var t of tabelle) {
+            var ff = path.join(outfile, t + '.json')
+            if (fs.existsSync(ff)) {
+                var dd = JSON.parse(fs.readFileSync(ff));
+                var rx = db.campi(t);
+                var r2 = [];
+                rx.unshift('rowid');
+                rx.forEach(r => r2.push('?'));
+                var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                var ds = db.prepare(sql);
+                for (var d of dd) {
+                    var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
+                    ds.run(...pars);
+                }
+            }
+        }
+        db.commit();
+        db.chiudi();
+        var d1 = new Date().valueOf() - d1;
+        console.log("restore tempo ms:", d1);
+
+    }
+    process.exit(0);
+} else if (!xx || fs.existsSync(xx)) {
 
     stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2023
 ${Green}SqlLite+FTS5 CLI tool
@@ -768,6 +856,14 @@ Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
     } else {
         processa('db');
     }
+} else {
+    console.log(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2023
+uso: 
+    ${Green}tlite ip  #mostra gli indirizzi ip dei server nginx attivi
+    tlite backup <nomedatabase> [fileout]
+    tlite restore <nomedatabase no path> [filedatabase]${Reset}
+    `);
+    process.exit(0);
 }
 
 
