@@ -3,9 +3,84 @@ import readline from 'readline';
 import path from 'path'
 import fs from 'fs';
 import os from 'os';
-import XLSX from 'xlsx';
+
 import { spawnSync, execSync } from 'child_process';
 import { database } from 'liburno_lib';
+import { xlsexport } from './xlsdb.js'
+
+
+function dobackup(ff) {
+    if (!ff || !fs.existsSync(ff)) {
+        process.stdout.write(`manca il nome del database\n`);
+    } else {
+        var pc = path.parse(ff);
+        var outfile = process.argv[4];
+        if (!outfile) { outfile = path.join(pc.dir, `db_${pc.name}`); }
+        else {
+            var k = path.parse(outfile);
+            outfile = path.join(k.dir, 'db_' + k.name);
+        }
+
+        pc.outfile = outfile;
+        checkcartellabackup(pc.outfile);
+        var d1 = new Date().valueOf();
+        dbname = ff;
+        db = database.db(ff);
+        var schema = db.schema()
+        fs.writeFileSync(path.join(pc.outfile, `schema.sql`), schema);
+        var tabelle = db.tabelle();
+        for (var rr of tabelle) {
+            var xx = db.campi(rr);
+            var sql = `select rowid,${xx.join(',')} from ${rr}`;
+            fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 2));
+        }
+        var d1 = new Date().valueOf() - d1;
+
+        console.log("tempo ms:", d1);
+        db.chiudi();
+    }
+    process.exit(0);
+
+}
+function dorestore(ff) {
+    var k = path.parse(ff);
+    outfile = path.join(k.dir, 'db_' + k.name);
+    if (!fs.existsSync(path.join(outfile, 'schema.sql'))) {
+        console.log(`manca la cartella di ripristino:`, outfile);
+    } else {
+        var d1 = new Date().valueOf();
+        dbname = path.join(k.dir, k.name + '.db');
+        if (fs.existsSync(dbname)) fs.unlinkSync(dbname);
+        db = database.db(dbname);
+        db.begin();
+        var sql = fs.readFileSync(path.join(outfile, 'schema.sql')).toString();
+        db.run(sql);
+        var tabelle = db.tabelle();
+        for (var t of tabelle) {
+            var ff = path.join(outfile, t + '.json')
+            if (fs.existsSync(ff)) {
+                var dd = JSON.parse(fs.readFileSync(ff));
+                var rx = db.campi(t);
+                var r2 = [];
+                rx.unshift('rowid');
+                rx.forEach(r => r2.push('?'));
+                var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                var ds = db.prepare(sql);
+                for (var d of dd) {
+                    var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
+                    ds.run(...pars);
+                }
+            }
+        }
+        db.commit();
+        db.chiudi();
+        var d1 = new Date().valueOf() - d1;
+        console.log("restore tempo ms:", d1);
+
+    }
+    process.exit(0);
+}
+
 
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
@@ -70,6 +145,8 @@ function getip() {
     } else {
         stdout.write(`Folder: ${Green}"${folder}" ${Reset} not found!\n`);
     }
+    process.exit(0);
+
 }
 
 // -------------------------- variabili globali
@@ -264,12 +341,12 @@ var dosql = (sql, modo) => {
 
 var startast = false;
 var ressql = "";
-var processa = (res) => {
+var processa = async (res) => {
     if (mmenu) {
         res = parseInt(res);
         mmenu = false;
         if (res > 0 && res <= lasts.data.length) {
-            processa(`use ${lasts.data[res - 1]}`)
+            await processa(`use ${lasts.data[res - 1]}`)
         }
     }
     else if (modosql) {
@@ -523,12 +600,8 @@ ${Bold}q,quit             ${Reset}Esci
                             r0 = resplit.join(' ');
                         }
                         var rq = db.export(r0, false)
-                        const worksheet = XLSX.utils.json_to_sheet(rq);
-                        const workbook = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(workbook, worksheet, f2);
-                        XLSX.writeFile(workbook, `${file}.xlsx`, { compression: true });
+                        xlsexport(rq, f2, file);
                         stdout.write(`write: ${Bold}${file}.xlsx${Reset}\n`);
-
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -662,9 +735,7 @@ ${Bold}q,quit             ${Reset}Esci
                         if (r0) {
                             var file = getfileout(r0) + '.xlsx'
                             if (fs.existsSync(file)) {
-                                var workbook = XLSX.readFile(file);
-                                var ws = workbook.Sheets[r0]
-                                var rq = XLSX.utils.sheet_to_json(ws)
+                                var rq = await xlsimport(file, r0)
                                 db.import(r0, rq);
                             }
                         }
@@ -772,92 +843,25 @@ ${Bold}q,quit             ${Reset}Esci
 var xx = process.argv[2];
 if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     getip()
-    process.exit(0);
 } else if (xx && xx == 'backup') {
     var ff = process.argv[3];
-
-    if (!ff || !fs.existsSync(ff)) {
-        process.stdout.write(`manca il nome del database\n`);
-    } else {
-        var pc = path.parse(ff);
-        var outfile = process.argv[4];
-        if (!outfile) { outfile = path.join(pc.dir, `db_${pc.name}`); }
-        else {
-            var k = path.parse(outfile);
-            outfile = path.join(k.dir, 'db_' + k.name);
-        }
-
-        pc.outfile = outfile;
-        checkcartellabackup(pc.outfile);
-        var d1 = new Date().valueOf();
-        dbname = ff;
-        db = database.db(ff);
-        var schema = db.schema()
-        fs.writeFileSync(path.join(pc.outfile, `schema.sql`), schema);
-        var tabelle = db.tabelle();
-        for (var rr of tabelle) {
-            var xx = db.campi(rr);
-            var sql = `select rowid,${xx.join(',')} from ${rr}`;
-            fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 2));
-        }
-        var d1 = new Date().valueOf() - d1;
-
-        console.log("tempo ms:", d1);
-        db.chiudi();
-    }
-    process.exit(0);
+    dobackup(ff)
 } else if (xx && xx == 'restore') {
     var ff = process.argv[3];
-    var k = path.parse(ff);
-    outfile = path.join(k.dir, 'db_' + k.name);
-    if (!fs.existsSync(path.join(outfile, 'schema.sql'))) {
-        console.log(`manca la cartella di ripristino:`, outfile);
-    } else {
-        var d1 = new Date().valueOf();
-        dbname = path.join(k.dir, k.name + '.db');
-        if (fs.existsSync(dbname)) fs.unlinkSync(dbname);
-        db = database.db(dbname);
-        db.begin();
-        var sql = fs.readFileSync(path.join(outfile, 'schema.sql')).toString();
-        db.run(sql);
-        var tabelle = db.tabelle();
-        for (var t of tabelle) {
-            var ff = path.join(outfile, t + '.json')
-            if (fs.existsSync(ff)) {
-                var dd = JSON.parse(fs.readFileSync(ff));
-                var rx = db.campi(t);
-                var r2 = [];
-                rx.unshift('rowid');
-                rx.forEach(r => r2.push('?'));
-                var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
-                var ds = db.prepare(sql);
-                for (var d of dd) {
-                    var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
-                    ds.run(...pars);
-                }
-            }
-        }
-        db.commit();
-        db.chiudi();
-        var d1 = new Date().valueOf() - d1;
-        console.log("restore tempo ms:", d1);
-
-    }
-    process.exit(0);
+    dorestore(ff)
 } else if (!xx || fs.existsSync(xx)) {
 
-    stdout.write(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2023
+    stdout.write(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.07 
 ${Green}SqlLite+FTS5 CLI tool
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
-
     if (xx && fs.existsSync(xx)) {
-        processa(`use ${xx}`);
+        await processa(`use ${xx}`);
     } else {
-        processa('db');
+        await processa('db');
     }
 } else {
-    console.log(`${Reset}Benvenuto a ${Bold}Tlite${Reset} (c) Croswil 2023
+    console.log(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.07
 uso: 
     ${Green}tlite ip  #mostra gli indirizzi ip dei server nginx attivi
     tlite backup <nomedatabase> [fileout]
