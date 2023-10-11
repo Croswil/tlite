@@ -9,17 +9,13 @@ import { database } from 'liburno_lib';
 import { xlsexport } from './xlsdb.js'
 
 
-function dobackup(ff) {
+function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
         process.stdout.write(`manca il nome del database\n`);
     } else {
         var pc = path.parse(ff);
-        var outfile = process.argv[4];
-        if (!outfile) { outfile = path.join(pc.dir, `db_${pc.name}`); }
-        else {
-            var k = path.parse(outfile);
-            outfile = path.join(k.dir, 'db_' + k.name);
-        }
+
+        var outfile = path.join(pc.dir, `db_${pc.name}`);
 
         pc.outfile = outfile;
         checkcartellabackup(pc.outfile);
@@ -29,11 +25,27 @@ function dobackup(ff) {
         var schema = db.schema()
         fs.writeFileSync(path.join(pc.outfile, `schema.sql`), schema);
         var tabelle = db.tabelle();
-        for (var rr of tabelle) {
-            var xx = db.campi(rr);
-            var sql = `select rowid,${xx.join(',')} from ${rr}`;
-            fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 2));
+        if (mode) {
+            for (var rr of tabelle) {
+                var xx = db.campi(rr);
+                var sql = `select rowid,${xx.join(',')} from ${rr}`;
+                fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 1));
+            }
+        } else {
+            for (var rr of tabelle) {
+                var xx = db.campi(rr);
+                var out = []
+                var campi = ['rowid', ...xx];
+                out.push(campi);
+                var all = db.all(`select ${campi.join(',')} from ${rr}`)
+                for (var r of all) {
+                    var p = campi.reduce((t, e) => { t.push(r[e]); return t; }, []);
+                    out.push(p);
+                }
+                fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(out, null, 1));
+            }
         }
+
         var d1 = new Date().valueOf() - d1;
 
         console.log("tempo ms:", d1);
@@ -44,7 +56,7 @@ function dobackup(ff) {
 }
 function dorestore(ff) {
     var k = path.parse(ff);
-    outfile = path.join(k.dir, 'db_' + k.name);
+    var outfile = path.join(k.dir, 'db_' + k.name);
     if (!fs.existsSync(path.join(outfile, 'schema.sql'))) {
         console.log(`manca la cartella di ripristino:`, outfile);
     } else {
@@ -60,16 +72,31 @@ function dorestore(ff) {
             var ff = path.join(outfile, t + '.json')
             if (fs.existsSync(ff)) {
                 var dd = JSON.parse(fs.readFileSync(ff));
-                var rx = db.campi(t);
-                var r2 = [];
-                rx.unshift('rowid');
-                rx.forEach(r => r2.push('?'));
-                var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
-                var ds = db.prepare(sql);
-                for (var d of dd) {
-                    var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
-                    ds.run(...pars);
+                if (dd && dd[0]) {
+                    if (Array.isArray(dd[0])) {
+                        var rx = dd[0];
+                        var r2 = [];
+                        rx.forEach(r => r2.push('?'));
+                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                        //console.log("IsArray", sql);
+                        var ds = db.prepare(sql);
+                        for (var i = 1; i < dd.length; i++) {
+                            ds.run(...dd[i])
+                        }
+                    } else {
+                        var rx = db.campi(t);
+                        var r2 = [];
+                        rx.unshift('rowid');
+                        rx.forEach(r => r2.push('?'));
+                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                        var ds = db.prepare(sql);
+                        for (var d of dd) {
+                            var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
+                            ds.run(...pars);
+                        }
+                    }
                 }
+
             }
         }
         db.commit();
@@ -845,7 +872,7 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     getip()
 } else if (xx && xx == 'backup') {
     var ff = process.argv[3];
-    dobackup(ff)
+    dobackup(ff, process.argv[4] ? 1 : 0)
 } else if (xx && xx == 'restore') {
     var ff = process.argv[3];
     dorestore(ff)
