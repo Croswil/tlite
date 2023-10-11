@@ -878,7 +878,7 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     dorestore(ff)
 } else if (!xx || fs.existsSync(xx)) {
 
-    stdout.write(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.07 
+    stdout.write(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.11 
 ${Green}SqlLite+FTS5 CLI tool
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
