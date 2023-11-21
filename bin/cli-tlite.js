@@ -7,7 +7,10 @@ import os from 'os';
 import { spawnSync, execSync } from 'child_process';
 import { database } from 'liburno_lib';
 import { xlsexport } from './xlsdb.js'
+const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
 
+
+const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.11.13`
 
 function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
@@ -180,7 +183,6 @@ function getip() {
 var db = null, dbname = '';
 var modosql = false, mcreate = false, mmenu = false;
 
-const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
 
 var pad = (s, l) => { return !l || s.length >= l ? l : s + new Array(l - s.length).join(' '); }
 var getdb = (noerr = false) => {
@@ -595,20 +597,38 @@ ${Bold}q,quit             ${Reset}Esci
                         r0 = r0.replaceAll(';', '');
                         var oo = [];
                         if (!r0) {
-                            var rr = db.tabelle();
+                            var vv = db.tabelle();
                         } else {
-                            rr = [r0]
+                            vv = [r0]
                         }
-                        console.log(rr);
-                        for (var r of rr) {
-                            oo.push(`\n${r}:`);
-                            var ff = db.campi(r, true);
-                            for (var f in ff) {
-                                if (f != 'rowid')
-                                    oo.push(`  ${f}: "${ff[f].t}"`);
+                        var cl = [`#!db`]
+                        for (var v of vv) {
+                            cl.push(`\n${v}:`)
+                            var campi = db.campi(v, true);
+                            var pr = [];
+                            for (var c in campi) {
+                                var k = campi[c];
+                                if (k.pr) pr.push(c);
+                                cl.push(`  ${c}: ${k.t || 'v'}`);
+                            }
+                            if (pr.length) {
+                                cl.push(`  __pk: ${pr.join(',')}`)
+                            }
+                            var rr = db.all(`select sql from  sqlite_master  where sql>'' and Lower(tbl_name)='${v}' and type='index' order by name`)
+                            var i = 0;
+                            for (var r of rr) {
+                                var tm = /\son\s(\w+)\s\((.*?)\)/gim.exec(r.sql);
+                                if (tm) {
+                                    cl.push(`  __i${i}: ${tm[2]}`);
+                                    i++
+                                } else {
+                                    console.log(r.sql);
+                                }
                             }
                         }
-                        var out = oo.join(`\n`);
+
+
+                        var out = cl.join(`\n`);
                         clippa(`${out} \n`);
                         stdout.write(`${out}\n`);
 
@@ -878,7 +898,7 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     dorestore(ff)
 } else if (!xx || fs.existsSync(xx)) {
 
-    stdout.write(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.11 
+    stdout.write(`${DATEVERSION} 
 ${Green}SqlLite+FTS5 CLI tool
 Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
 `);
@@ -888,7 +908,7 @@ Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
         await processa('db');
     }
 } else {
-    console.log(`${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.10.07
+    console.log(`${DATEVERSION}
 uso: 
     ${Green}tlite ip  #mostra gli indirizzi ip dei server nginx attivi
     tlite backup <nomedatabase> [fileout]
