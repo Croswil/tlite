@@ -10,7 +10,7 @@ import { xlsexport } from './xlsdb.js'
 const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
 
 
-const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.11.13`
+const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.12.6`
 
 function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
@@ -130,6 +130,7 @@ var getclip = () => {
 
     return clipContent;
 }
+
 
 function checkcartellabackup(folderPath) {
     // Verifica se la cartella esiste
@@ -263,7 +264,7 @@ const rl = readline.createInterface({
 });
 
 
-var doselect = (db, s) => {
+var doselect = (db, s, isclip) => {
     var cl = [];
     var rr = /(\[[^\]]*\])/gim.exec(s)
     if (rr) {
@@ -275,6 +276,18 @@ var doselect = (db, s) => {
     }
     if (s.indexOf(' limit') < 1) s += ' limit 20' // max 20 righe;
     var rr = db.prepare(s).all(...cl);
+    if (isclip && rr?.length > 0) {
+        var tt = [];
+        for (var r of rr) {
+            var tm = [];
+            for (var x in r) {
+                tm.push(r[x]);
+            }
+            tt.push(tm.join('\t'));
+        }
+        clippa(tt.join('\n'));
+    }
+
     var fld = [], rx = [];
     if (rr && rr.length > 0) {
         for (var r in rr[0]) {
@@ -283,6 +296,7 @@ var doselect = (db, s) => {
     } else {
         return true;
     }
+
 
     process.stdout.write(`${Green}${fld.join(',')}${Reset}\n`);
     for (var r of rr) {
@@ -305,7 +319,7 @@ var printdbs = () => {
     }
 }
 
-var dosql = (sql, modo) => {
+var dosql = (sql, modo, isclip) => {
     startast = false;
     if (sql.length > 1 && sql[sql.length - 1] == '!') sql = sql.substr(0, sql.length - 1);
 
@@ -357,7 +371,8 @@ var dosql = (sql, modo) => {
                             db.run(s, ...cl);
                         }
                     } else {
-                        return doselect(db, s);
+
+                        return doselect(db, s, isclip);
                     }
                 }
             }
@@ -812,6 +827,9 @@ ${Bold}q,quit             ${Reset}Esci
             case "vacuum":
             case "e":
                 dosql(r1 + ' ' + r0, false);
+                break;
+            case "clip":
+                dosql('select ' + r0, false, true);
                 break;
             case 'i':
             case 'd':
