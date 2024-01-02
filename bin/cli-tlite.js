@@ -10,7 +10,7 @@ import { xlsexport } from './xlsdb.js'
 const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
 
 
-const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2023.12.6`
+const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2024.1.2`
 
 function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
@@ -416,9 +416,7 @@ var processa = async (res) => {
         switch (r1s) {
             case "q":
             case "quit":
-                if (getdb()) db.close();
-                stdout.write('bye1..\n')
-                process.exit(0);
+                doesci();
             case 'h':
             case 'help':
             case '?':
@@ -817,6 +815,9 @@ ${Bold}q,quit             ${Reset}Esci
                     ressql = r0;
                 }
                 break;
+            case "c":
+                dosql(r0, true);
+                break;
             case "select":
             case "insert":
             case "update":
@@ -891,18 +892,7 @@ ${Bold}q,quit             ${Reset}Esci
                 break; 1
         }
     }
-    //    if (db) {
-    //        db.chiudi();
-    //        db = null;
-    //    }
-    if (mmenu) {
-        rl.setPrompt("[0..9] >")
-    } else if (!modosql) {
-        rl.setPrompt("tl> ")
-    } else {
-        rl.setPrompt("");
-    }
-    rl.prompt();
+
 }
 
 var xx = process.argv[2];
@@ -935,7 +925,45 @@ uso:
     process.exit(0);
 }
 
+let cl = [], cl2 = [];
+setprompt();
+rl.on('line', (lines) => {
+    lines = (lines || '').split('\n');
+    rl.history.shift();
+    for (var line of lines) {
+        var r1 = /\\\s*(\/\/.*|\s*)?$/i.exec(line);
+        if (r1) {
+            cl2.push(line);
+            cl.push(line.slice(0, r1.index));
+            continue;
+        } else if (line.trim() || cl.length) {
+            cl.push(line.trim())
+            cl2.push(line);
+        }
+        if (cl.length) {
+            rl.history.unshift(cl2.join('\n'));
+            processa(cl.join(' '));
+            setprompt()
+        }
+    }
+}).on('close', () => doesci());
 
-rl.on('line', (res) => {
-    processa(res);
-});
+function setprompt() {
+    cl = []
+    cl2 = [];
+    if (mmenu) {
+        rl.setPrompt("[0..9] >")
+    } else if (!modosql) {
+        rl.setPrompt("tl> ")
+    } else {
+        rl.setPrompt("");
+    }
+    rl.prompt();
+
+}
+
+function doesci() {
+    if (getdb()) db.close();
+    stdout.write('bye1..\n')
+    process.exit(0);
+}

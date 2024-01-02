@@ -3,9 +3,39 @@ import readline from 'readline';
 import path from 'path'
 import fs from 'fs';
 import sharp from 'sharp';
-import argv from 'argv';
+import { init } from 'liburno_lib'
 import { exec } from "child_process";
-const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
+import minimist from 'minimist'
+const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
+
+
+
+
+
+
+const INFO = `${Bold}unsplash${Reset} :             Query images from unsplash (c) Croswil 2023 v1.1
+${Bold}Uso: ${Green}unsplash <query> <flags> ${Reset}   
+
+${Bold}flags:${Reset}
+   ${Green}-h, --help${Reset}              mostra l'help
+   ${Green}-o, --output${Reset} <folder>   cartella di outputmodo sul file .env [public,test,altro]   
+   ${Green}-n, --numero${Reset} <n>        numero immagini da scaricare: (default = 1)  
+   ${Green}-p, --pagina${Reset} <p>        serve per cercare una immagine successiva alle più visualizzate (default = 0)  
+   ${Green}-l, --latest${Reset}            ordina la selezione dalle ultime caricate
+   ${Green}-c, --colore${Reset} <c>        colori: black_and_white, black, white, yellow, orange, red, purple, magenta, green, teal, and blue  
+   ${Green}-x, --orizzontale${Reset}       Orizzontale  
+   ${Green}-y, --verticale${Reset}         Verticale  
+   ${Green}-q, --quadrato${Reset}          Immagine Quadrata
+   ${Green}-s, --size${Reset} <s>          Dimensione X immagine   
+`
+const mi = minimist(process.argv);
+
+if (mi._.length == 0 || mi.h || mi.help) {
+    console.log(INFO);
+    process.exit(0);
+
+}
+
 
 function esegui(comando) {
     return new Promise((resolve, reject) => {
@@ -48,89 +78,27 @@ async function xmain() {
 
 }
 
-argv.info(`unsplash : get image from unsplash 
-Fa una query sul sito e ricava n. imagini che passa alla cartella <out>, in formato JPEG e JSON
-
-unsplash <query> -s 1000 -o images -n 10  
-`
-)
-argv.option([
-    {
-        name: 'output',
-        short: 'o',
-        type: 'path',
-        description: 'Output folder: se non esiste viene creato, se non definito utilizza tmp',
-    },
-    {
-        name: 'numero',
-        short: 'n',
-        type: 'int',
-        description: `numero immagini da scaricare: (default = 1)`,
-    },
-    {
-        name: 'pagina',
-        short: 'p',
-        type: 'int',
-        description: `serve per cercare una immagine successiva alle più visualizzate`,
-    },
-
-    {
-        name: 'latest',
-        short: 'l',
-        type: 'boolean',
-        description: `ordina la selezione dalle ultime caricate `,
-    },
-
-    {
-        name: 'colore',
-        short: 'c',
-        type: 'string',
-        description: `colori: black_and_white, black, white, yellow, orange, red, purple, magenta, green, teal, and blue `,
-    },
-    {
-        name: 'orizzontale',
-        short: 'x',
-        type: 'boolean',
-    },
-    {
-        name: 'verticale',
-        short: 'y',
-        type: 'boolean',
-    },
-    {
-        name: 'quadrato',
-        short: 'q',
-        type: 'boolean',
-    },
-    {
-        name: 'size',
-        short: 's',
-        type: 'int',
-        description: `dimensione larghezza immagine in pixel `,
-    },
-
-]);
-argv.version('v1.0')
 
 async function main() {
-    var args = argv.run();
-    var op = args.options;
-    var outdir = op.output || `${(args.targets + '').replace(/[\.\\\/\s]/gi, '-')}` || 'out';
+    var outdir = mi.o || mi.output || 'out';
+
     var outfile2 = outdir.split('/').pop();
     if (fs.existsSync(outdir)) {
         console.log("cambia il percorso di output o cancella i dati!")
     } else {
-
-        var query = encodeURIComponent(args.targets);
+        console.log("QUERY:", mi._[2]);
+        var query = encodeURIComponent(mi._[2]);
         if (query) {
             var out = [];
-
+            const pagina = mi.p || mi.pagina || 1;
+            const numero = mi.n || mi.numero || 1;
             //if (0) {
-            var add = `https://api.unsplash.com/search/photos?query=${query}&page=${op.pagina || 1}&per_page=${op.numero || 1}&order_by=${op.latest ? 'latest' : 'relevant'}`
-            if (op.color) add = `${add}&color=${op.color}`
-            if (op.orizzontale) add = `${add}&orientation=landscape`;
-            else if (op.verticale) add = `${add}&orientation=portrait`
-            else if (op.quadrato) add = `${add}&orientation=squarish`
+            var add = `https://api.unsplash.com/search/photos?query=${query}&page=${pagina}&per_page=${numero}&order_by=${mi.latest || mi.l ? 'latest' : 'relevant'}`
+
+            if (mi.color || mi.c) add = `${add}&color=${mi.c || mi.color}`
+            if (mi.orizzontale || mi.x) add = `${add}&orientation=landscape`;
+            else if (mi.verticale || mi.y) add = `${add}&orientation=portrait`
+            else if (mi.quadrato || mi.q) add = `${add}&orientation=squarish`
             console.log(add);
             var res = await esegui(`
                 curl -H "Authorization: Client-ID I-u34HEOfOSp5jXxrnMnTQv26NRtxGNB_4MVvHkkmrs" "${add}"
@@ -163,10 +131,10 @@ async function main() {
                 var file = outfile2 + '_' + ('00000' + ii).slice(-4);
                 console.log(file, x.img);
                 fs.writeFileSync(`${outdir}/json/${file}.json`, JSON.stringify(x, null, 2));
-                if (op.size) {
+                if (parseInt(mi.s || mi.size)) {
                     await esegui(`curl -H "Authorization: Client-ID I-u34HEOfOSp5jXxrnMnTQv26NRtxGNB_4MVvHkkmrs" "${x.img}" >out.jpeg`);
                     await sharp('out.jpeg')
-                        .resize(op.size)
+                        .resize(parseInt(mi.s || mi.size))
                         .toFile(`${outdir}/img/${file}.jpeg`);
                     fs.unlinkSync(`out.jpeg`);
                 } else {
@@ -175,7 +143,8 @@ async function main() {
 
             }
         } else {
-            console.log(`${Red}${Bold}Manca la query...${Reset}`);
+            console.log(INFO);
+            console.log(`\n${Red}${Bold}Manca la query...${Reset}`);
         }
     }
 

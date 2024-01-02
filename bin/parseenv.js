@@ -2,35 +2,27 @@
 import fs from "fs";
 import path from "path";
 import { init, B } from "liburno_lib";
-import argv from 'argv';
 import YAML from 'yaml'
+import minimist from 'minimist'
+const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
 
 
-const INFO = `parseenv : Utility multiscopo per siti ERP Croswil 2023 v1.1
-parseenv -m mode # modifica il file di configurazione per gestione locale e remota  
-parseenv --help
+const INFO = `${Bold}parseenv${Reset} :             Utility multiscopo per siti ERP Croswil 2023 v1.1
+${Bold}Uso: ${Green}parseenv <flags> ${Reset} Modifica il file di configurazione per gestione locale e remota  
+
+${Bold}flags:${Reset}
+   ${Green}-h, --help${Reset}              mostra l'help
+   ${Green}-m, --mode${Reset} <modo>       modo sul file .env [public,test,altro]   
+   ${Green}-d, --dbapp${Reset}             Crea il file dbapp   
+   ${Green}-r, --route${Reset}             Crea routing   
 `
-argv.info(INFO)
-argv.option([
-    {
-        name: 'mode',
-        short: 'm',
-        type: 'string',
-        description: 'modo sul file .env [public,test,altro]',
-    },
-    {
-        name: 'dbapp',
-        short: 'd',
-        type: 'boolean',
-        description: 'Crea il file dbapp',
-    },
-    {
-        name: 'route',
-        short: 'r',
-        type: 'boolean',
-        description: 'Crea routing',
-    },
-])
+var mi = minimist(process.argv);
+if (mi._.length == 0 || mi.h || mi.help) {
+    console.log(INFO);
+    process.exit(0);
+
+}
+
 function parsetree(dd, callback, padre, liv) {
     var i = 0;
     if (!liv) liv = 0;
@@ -50,15 +42,14 @@ function allineastr(str, lunghezza) {
 }
 
 init();
-const args = argv.run();
-const op = args.options;
 var fl = 0;
 const modes = ['public', 'test', 'altro'];
 // parse env mode 
-if (op.mode && modes.includes(op.mode)) {
+var mode = mi.m || mi.mode;
+if (mode && modes.includes(mode)) {
     if (fs.existsSync(".env")) {
         var vv = fs.readFileSync(".env").toString().split('\n');
-        var mx = modes.filter(e => e != op.mode).join('|')
+        var mx = modes.filter(e => e != mode).join('|')
         var rr = new RegExp(`^##\\s*(${mx})\\s*$`, "im");
         var out = [];
         for (var v of vv) {
@@ -76,12 +67,12 @@ if (op.mode && modes.includes(op.mode)) {
             out.push(v);
         }
         fs.writeFileSync(".env", out.join('\n'));
-        console.log("ATTIVATO: ", op.mode);
+        console.log("ATTIVATO: ", mode);
 
     } else {
         console.log("file .env not found");
     }
-} else if (op.dbapp) {
+} else if (mi.d || mi.dbapp) {
     function getfromfolder(folder) {
         var ctl = {};
         var ric = {};
@@ -152,7 +143,7 @@ if (op.mode && modes.includes(op.mode)) {
     res.filtri = filtri;
     fs.writeFileSync("dbapp.json", JSON.stringify(res, null, 2));
     console.log("creato: dbapp.json");
-} else if (op.route) {
+} else if (mi.r || mi.route) {
     var sicon = new Set();
     var checkicon = (name) => {
         name = (name || '').trim(); if (name && !sicon.has(name)) sicon.add(name)
