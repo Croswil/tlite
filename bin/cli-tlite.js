@@ -223,10 +223,21 @@ function getfileout(r0) {
     return r0 ? r0 : 'out';
 }
 
+
+var stdout = process.stdout;
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: stdout,
+    prompt: 'TL> '
+});
+
+
+
 var lasts = {
     data: [],
     short: true,
-    outdir: ''
+    outdir: '',
+    history: []
 };
 
 
@@ -243,7 +254,8 @@ var lasts = {
                 if (i > 0) { // sposta al primo posto
                     var tm = lasts.data.splice(i, 1);
                     lasts.data.unshift(tm[0]);
-
+                    lasts.history = [...rl.history];
+                    if (rl.history.length > 50) rl.history.length = 50
                     fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 }
                 return;
@@ -256,12 +268,6 @@ var lasts = {
 }
 
 
-var stdout = process.stdout;
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: stdout,
-    prompt: 'TL> '
-});
 
 
 var doselect = (db, s, isclip) => {
@@ -927,6 +933,7 @@ uso:
 
 let cl = [], cl2 = [];
 setprompt();
+if (lasts.history) rl.history = [...lasts.history];
 rl.on('line', (lines) => {
     lines = (lines || '').split('\n');
     rl.history.shift();
@@ -941,7 +948,7 @@ rl.on('line', (lines) => {
             cl2.push(line);
         }
         if (cl.length) {
-            rl.history.unshift(cl2.join('\n'));
+            if (!mmenu) rl.history.unshift(cl2.join('\n'));
             processa(cl.join(' '));
             setprompt()
         }
@@ -964,6 +971,9 @@ function setprompt() {
 
 function doesci() {
     if (getdb()) db.close();
+    lasts.history = [...new Set(rl.history.filter(e => e.trim().length > 2))];
+    if (rl.history.length > 50) rl.history.length = 50
+    fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
     stdout.write('bye1..\n')
     process.exit(0);
 }
