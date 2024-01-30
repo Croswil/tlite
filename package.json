@@ -1,5 +1,5 @@
 {
-  "name": "tlite",
+  "name": "@croswil/tlite",
   "version": "1.0.15",
   "description": "sqlite+fts5 command line interface",
   "keywords": [],
