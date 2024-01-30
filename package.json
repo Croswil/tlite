@@ -10,8 +10,8 @@
     "url": "git+https://github.com/liburno/tlite.git"
   },
   "scripts": {
-    "preinstall": "echo ** prima installazione **",
-    "postinstall": "node ./scripts/tito.js"
+    "build": "rollup -c; chmod +x ./bin/*.js; ",
+    "dev": "rollup -c -w"
   },
   "license": "MIT",
   "type": "module",
@@ -24,10 +24,19 @@
     "xlsx": "^0.18.5",
     "yaml": "^2.3.4"
   },
+  "files": [
+    "bin/**"
+  ],
   "bin": {
     "tlite": "./bin/cli-tlite.js",
     "tinfo": "./bin/cli-info.js",
     "parseenv": "./bin/parseenv.js",
     "unsplash": "./bin/unsplash.js"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.9.6"
   }
 }
