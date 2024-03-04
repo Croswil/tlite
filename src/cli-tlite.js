@@ -12,9 +12,6 @@ const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m",
 
 const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2024.1.2`
 
-
-
-
 function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
         process.stdout.write(`manca il nome del database\n`);
