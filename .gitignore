@@ -3,3 +3,4 @@ pub
 yarn.lock
 package-lock.json
 .lasts.tlite
+*.db
