@@ -1,6 +1,6 @@
 {
   "name": "croswil_tlite",
-  "version": "1.2.21",
+  "version": "1.2.22",
   "description": "sqlite+fts5 command line interface",
   "keywords": [],
   "main": "./index.js",
