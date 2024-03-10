@@ -2,7 +2,8 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
-
+import replace from '@rollup/plugin-replace';
+import pkg from './package.json' assert { type: 'json' }
 // Configurazione comune per entrambi i build
 const generali = {
     preferBuiltins: false,
@@ -15,16 +16,15 @@ const generali = {
 
 }
 const plugs = [
-    /* resolve({
-         dedupe: ['liburno_lib', 'xlsx'],
-         resolveOnly: ['^xlsx'],
-         preferBuiltins: true
-     }),*/
+    replace({
+        preventAssignment: true,
+        'process.env.VERSION': JSON.stringify(pkg.version),
+    }),
     commonjs(),
 ]
 const parseenvBuild = {
     ...generali,
-    input: 'src/parseenv.js',
+    input: 'src/cli-env.js',
     plugins: [
         ...plugs,
         terser()
@@ -63,9 +63,9 @@ const unsplashBuild = {
         terser()
     ]
 };
-const infoBuild = {
+const manifestBuild = {
     ...generali,
-    input: 'src/cli-info.js',
+    input: 'src/manifest.js',
     plugins: [
         ...plugs,
         terser()
@@ -73,4 +73,4 @@ const infoBuild = {
 };
 
 
-export default [parseenvBuild, tliteBuild, unsplashBuild, infoBuild];
+export default [parseenvBuild, tliteBuild, unsplashBuild, manifestBuild];

@@ -1,17 +1,20 @@
 #!/usr/bin/env node
+
 import readline from 'readline';
 import path from 'path'
 import fs from 'fs';
 import os from 'os';
 
 import { spawnSync, execSync } from 'child_process';
-import { database } from 'liburno_lib';
+import { database, init } from 'liburno_lib';
 import { xlsexport } from './xlsdb.js'
-const Reset = "\x1b[0m", Bold = "\x1b[1m", Red = "\x1b[31m", Green = "\x1b[32m", Yellow = "\x1b[33m";
+const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
 
 
-const DATEVERSION = `${Reset}${Bold}Tlite${Reset} (c) Croswil 2024.1.2`
 
+const DATEVERSION = `------------------------------------------------------
+${Cyan}${Bold}tlite${Reset}: Utility per sqlite       ${White}(c) Croswil  v. ${Yellow}${Bold}${process.env.VERSION}${Reset}
+------------------------------------------------------`;
 function dobackup(ff, mode) {
     if (!ff || !fs.existsSync(ff)) {
         process.stdout.write(`manca il nome del database\n`);
@@ -911,11 +914,8 @@ if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
     var ff = process.argv[3];
     dorestore(ff)
 } else if (!xx || fs.existsSync(xx)) {
+    console.log(DATEVERSION);
 
-    stdout.write(`${DATEVERSION} 
-${Green}SqlLite+FTS5 CLI tool
-Digita ${Bold}help${Reset}${Green} per maggiori informazioni...  ${Reset}
-`);
     if (xx && fs.existsSync(xx)) {
         await processa(`use ${xx}`);
     } else {

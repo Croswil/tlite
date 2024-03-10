@@ -1,40 +1,37 @@
-#! /usr/local/bin/node
-import readline from 'readline';
-import path from 'path'
+#!/usr/bin/env node
+
 import fs from 'fs';
 import sharp from 'sharp';
-import { init } from 'liburno_lib'
+import minimist from 'minimist';
 import { exec } from "child_process";
-import minimist from 'minimist'
-const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
+const Clear = "\x1Bc",
+    Reset = "\x1b[0m",
+    Bold = "\x1b[1m",
+    Reverse = "\x1b[7m",
+    Red = "\x1b[31m",
+    Green = "\x1b[32m",
+    Yellow = "\x1b[33m",
+    Blue = "\x1b[34m",
+    Magenta = "\x1b[35m",
+    Cyan = "\x1b[36m",
+    White = "\x1b[37m";
 
-
-
-
-
-
-const INFO = `${Bold}unsplash${Reset} :             Query images from unsplash (c) Croswil 2023 v1.1
-${Bold}Uso: ${Green}unsplash <query> <flags> ${Reset}   
-
-${Bold}flags:${Reset}
-   ${Green}-h, --help${Reset}              mostra l'help
-   ${Green}-o, --output${Reset} <folder>   cartella di outputmodo sul file .env [public,test,altro]   
-   ${Green}-n, --numero${Reset} <n>        numero immagini da scaricare: (default = 1)  
-   ${Green}-p, --pagina${Reset} <p>        serve per cercare una immagine successiva alle più visualizzate (default = 0)  
-   ${Green}-l, --latest${Reset}            ordina la selezione dalle ultime caricate
-   ${Green}-c, --colore${Reset} <c>        colori: black_and_white, black, white, yellow, orange, red, purple, magenta, green, teal, and blue  
-   ${Green}-x, --orizzontale${Reset}       Orizzontale  
-   ${Green}-y, --verticale${Reset}         Verticale  
-   ${Green}-q, --quadrato${Reset}          Immagine Quadrata
-   ${Green}-s, --size${Reset} <s>          Dimensione X immagine   
+const INFO = `-------------------------------------------------------------
+${Cyan}${Bold}tlite-unsplash${Reset} : getimage from unsplash (c) Croswil 2024 ${Yellow}${process.env.VERSION}${Reset}
+-------------------------------------------------------------
+Fa una query sul sito e ricava n. imagini che passa alla cartella <out>, in formato JPEG e JSON
+es: ${Cyan}tlite-unsplash <query> -s 1000 -o images -n 10${Reset}  
+${Green}Opzioni:${Reset}
+-o, --output <path>        ${Green}Output folder: se non esiste viene creato, se non definito utilizza tmp${Reset}
+-n, --numero <immagini>    ${Green}numero immagini da scaricare: (default = 1)${Reset}
+-p, --pagina <pagina>      ${Green}serve per cercare una immagine successiva alle più visualizzate${Reset}
+-l, --latest               ${Green}ordina la selezione dalle ultime caricate${Reset}
+-c, --colore               ${Green}colori: black_and_white, black, white, yellow, orange, red, purple, magenta, green, teal, and blue${Reset}
+-x, --orizzontale
+-y, --verticale
+-q, --quadrato
+-s, --size <int>           ${Green}dimensione larghezza immagine in pixel ${Reset}
 `
-const mi = minimist(process.argv);
-
-if (mi._.length == 0 || mi.h || mi.help) {
-    console.log(INFO);
-    process.exit(0);
-
-}
 
 
 function esegui(comando) {
@@ -50,55 +47,30 @@ function esegui(comando) {
 }
 
 
-async function converti(basefile) {
-    if (fs.existsSync(`${outdir}/${basefile}`)) return 0;
-    var file = `${indir}/${basefile}`;
-    try {
-        await sharp(file)
-            .resize(120)
-            .toFile(`${outdir}/${basefile}`);
-        return 1;
 
-    } catch (error) {
-        console.log(error.message, file);
-        return 2;
-    }
-
+var mi = minimist(process.argv);
+if (mi._.length < 2 || mi.h || mi.help) {
+    console.log(INFO);
+    process.exit(0);
 }
-
-async function xmain() {
-    esegui(`rm -rdf ${outdir}; mkdir ${outdir}`);
-    var vv = fs.readdirSync(indir);
-    for (var v of vv) {
-        if (v.endsWith(".png")) {
-            console.log(v);
-            await converti(v);
-        }
-    }
-
-}
-
-
+var op = mi;
 async function main() {
-    var outdir = mi.o || mi.output || 'out';
-
+    var outdir = (op.o || op.output) || `${(mi._[2] + '').replace(/[\.\\\/\s]/gi, '-')}` || 'out';
     var outfile2 = outdir.split('/').pop();
     if (fs.existsSync(outdir)) {
         console.log("cambia il percorso di output o cancella i dati!")
     } else {
-        console.log("QUERY:", mi._[2]);
+
         var query = encodeURIComponent(mi._[2]);
         if (query) {
             var out = [];
-            const pagina = mi.p || mi.pagina || 1;
-            const numero = mi.n || mi.numero || 1;
-            //if (0) {
-            var add = `https://api.unsplash.com/search/photos?query=${query}&page=${pagina}&per_page=${numero}&order_by=${mi.latest || mi.l ? 'latest' : 'relevant'}`
 
-            if (mi.color || mi.c) add = `${add}&color=${mi.c || mi.color}`
-            if (mi.orizzontale || mi.x) add = `${add}&orientation=landscape`;
-            else if (mi.verticale || mi.y) add = `${add}&orientation=portrait`
-            else if (mi.quadrato || mi.q) add = `${add}&orientation=squarish`
+            //if (0) {
+            var add = `https://api.unsplash.com/search/photos?query=${query}&page=${op.pagina || op.p || 1}&per_page=${op.numero || op.n || 1}&order_by=${op.latest ? 'latest' : 'relevant'}`
+            if (op.color || op.c) add = `${add}&color=${op.color || op.c}`
+            if (op.orizzontale || op.x) add = `${add}&orientation=landscape`;
+            else if (op.verticale || op.y) add = `${add}&orientation=portrait`
+            else if (op.quadrato || op.q) add = `${add}&orientation=squarish`
             console.log(add);
             var res = await esegui(`
                 curl -H "Authorization: Client-ID I-u34HEOfOSp5jXxrnMnTQv26NRtxGNB_4MVvHkkmrs" "${add}"
@@ -131,10 +103,10 @@ async function main() {
                 var file = outfile2 + '_' + ('00000' + ii).slice(-4);
                 console.log(file, x.img);
                 fs.writeFileSync(`${outdir}/json/${file}.json`, JSON.stringify(x, null, 2));
-                if (parseInt(mi.s || mi.size)) {
+                if (op.size || op.s) {
                     await esegui(`curl -H "Authorization: Client-ID I-u34HEOfOSp5jXxrnMnTQv26NRtxGNB_4MVvHkkmrs" "${x.img}" >out.jpeg`);
                     await sharp('out.jpeg')
-                        .resize(parseInt(mi.s || mi.size))
+                        .resize(parseInt(op.size || op.s) || 100)
                         .toFile(`${outdir}/img/${file}.jpeg`);
                     fs.unlinkSync(`out.jpeg`);
                 } else {
@@ -143,8 +115,7 @@ async function main() {
 
             }
         } else {
-            console.log(INFO);
-            console.log(`\n${Red}${Bold}Manca la query...${Reset}`);
+            console.log(`${Red}${Bold}Manca la query...${Reset}`);
         }
     }
 

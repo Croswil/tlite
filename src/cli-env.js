@@ -1,4 +1,4 @@
-#! /usr/local/bin/node
+#!/usr/bin/env node
 import fs from "fs";
 import path from "path";
 import { init, B } from "liburno_lib";
@@ -7,8 +7,10 @@ import minimist from 'minimist'
 const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
 
 
-const INFO = `${Bold}parseenv${Reset} :             Utility multiscopo per siti ERP Croswil 2023 v1.1
-${Bold}Uso: ${Green}parseenv <flags> ${Reset} Modifica il file di configurazione per gestione locale e remota  
+const INFO = `-------------------------------------------------------------
+${Cyan}${Bold}tlite-env${Reset}: utility multiscopo database ${White}(c) Croswil  v. ${Yellow}${Bold}${process.env.VERSION}${Reset}
+-------------------------------------------------------------${Reset}
+${Bold}Uso: ${Green}tlite-env <flags> ${Reset}  
 
 ${Bold}flags:${Reset}
    ${Green}-h, --help${Reset}              mostra l'help
