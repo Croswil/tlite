@@ -71,6 +71,14 @@ const manifestBuild = {
         terser()
     ]
 };
+const porkbunBuild = {
+    ...generali,
+    input: 'src/porkbun.js',
+    plugins: [
+        ...plugs,
+        terser()
+    ]
+};
 
 
-export default [parseenvBuild, tliteBuild, unsplashBuild, manifestBuild];
+export default [parseenvBuild, tliteBuild, unsplashBuild, manifestBuild, porkbunBuild];
