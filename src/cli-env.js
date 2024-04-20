@@ -16,7 +16,8 @@ ${Bold}flags:${Reset}
    ${Green}-h, --help${Reset}              mostra l'help
    ${Green}-m, --mode${Reset} <modo>       modo sul file .env [public,test,altro]   
    ${Green}-d, --dbapp${Reset}             Crea il file dbapp   
-   ${Green}-r, --route${Reset}             Crea routing   
+   ${Green}-r, --route${Reset}             Crea routing
+   ${Green}-a, --abilita${Reset}           Crea md/abilitazioni.json   
 `
 var mi = minimist(process.argv);
 if (mi._.length == 0 || mi.h || mi.help) {
@@ -35,13 +36,7 @@ function parsetree(dd, callback, padre, liv) {
     }
 }
 
-function allineastr(str, lunghezza) {
-    if (str.length > lunghezza) {
-        return str.substring(0, lunghezza);
-    } else {
-        return str.padEnd(lunghezza, ' ');
-    }
-}
+
 
 init();
 var fl = 0;
@@ -74,7 +69,8 @@ if (mode && modes.includes(mode)) {
     } else {
         console.log("file .env not found");
     }
-} else if (mi.d || mi.dbapp) {
+}
+if (mi.d || mi.dbapp) {
     function getfromfolder(folder) {
         var ctl = {};
         var ric = {};
@@ -145,7 +141,43 @@ if (mode && modes.includes(mode)) {
     res.filtri = filtri;
     fs.writeFileSync("dbapp.json", JSON.stringify(res, null, 2));
     console.log("creato: dbapp.json");
-} else if (mi.r || mi.route) {
+}
+if (mi.a || mi.abilita) {
+    var data = fs.readFileSync("dbdef/abilitazioni.txt").toString().lines().sort();
+    var lista = [];
+    var tm = {}
+    var id = 0;
+    for (var d of data) {
+        var v = d.split('//')[0].split(',')
+        var cod = v[0].trim();
+        var des = (v[1] || '').trim();
+        if (cod) {
+            v = cod.split('.');
+            var rs = [];
+            for (var i = 0; i < v.length; i++) {
+                var padre = rs.join('.');
+                rs.push(v[i]);
+                var t = rs.join('.');
+                if (!tm[t]) {
+                    id++
+                    tm[t] = id;
+                    lista.push({
+                        id: id,
+                        level: i,
+                        padre: padre && tm[padre] ? tm[padre] : 0,
+                        cod: t,
+                        des,
+
+                    })
+                }
+            }
+        }
+    }
+    fs.writeFileSync("md/abilitazioni.json", JSON.stringify(lista, null, 2));
+    console.log("created abilitazioni.json");
+}
+if (mi.r || mi.route) {
+
     var sicon = new Set();
     var checkicon = (name) => {
         name = (name || '').trim(); if (name && !sicon.has(name)) sicon.add(name)
@@ -157,12 +189,11 @@ if (mode && modes.includes(mode)) {
         console.log(`file ${file} not found`);
         process.exit(1);
     }
-    var ismenu = fs.existsSync('md') && fs.existsSync('md/menu.json') && fs.existsSync('md/menumain.json');
-    var menu = [], menumain = [];
+    var ismenu = fs.existsSync('md') && fs.existsSync('md/menu.json');
+    var menu = []
     var links = {}
     if (ismenu) {
         menu = JSON.parse(fs.readFileSync("md/menu.json"))
-        menumain = JSON.parse(fs.readFileSync('md/menumain.json'))
     }
 
     var vars = {
@@ -212,14 +243,13 @@ if (mode && modes.includes(mode)) {
 
         if (ismenu) {
             function setauthmenu(m, v, auth) {
-                var { match, auth } = resolve(v, m.link, auth);
+                var { match, auth } = modificaauth(v, m.link, auth);
                 if (match) {
                     m.auth = (auth || '').trim();
                     m.op = 1;
                 }
             }
             parsetree(menu, m => setauthmenu(m, v, auth));
-            parsetree(menumain, m => setauthmenu(m, v, auth));
         }
 
         var vy = v.split('/').pop() + '/';
@@ -306,9 +336,7 @@ if (mode && modes.includes(mode)) {
         }
 
         parsetree(menu, m => cleantree(m))
-        parsetree(menumain, m => cleantree(m))
         fs.writeFileSync("md/menu.json", JSON.stringify(menu, null, 2))
-        fs.writeFileSync("md/menumain.json", JSON.stringify(menumain, null, 2))
         fs.writeFileSync("md/linkmain.json", JSON.stringify(links, null, 2))
 
 
@@ -331,12 +359,9 @@ export const dockeys=[
     
 export const sicons=[\n   "${icons.join('",\n   "')}"\n]`);
 
-} else {
-    console.log(INFO);
-    console.log('wrong options');
 }
 
-function resolve(p1, p2, auth) {
+function modificaauth(p1, p2, auth) {
     auth = auth || ''
     var match = false;
     if (p1 && p2) {
