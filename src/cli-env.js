@@ -193,7 +193,11 @@ if (mi.r || mi.route) {
     var menu = []
     var links = {}
     if (ismenu) {
-        menu = JSON.parse(fs.readFileSync("md/menu.json"))
+        if (fs.existsSync(`dbdef/menu.md`)) {
+            menu = getmenufromtxt()
+        } else {
+            menu = JSON.parse(fs.readFileSync("md/menu.json"))
+        }
     }
 
     var vars = {
@@ -380,4 +384,47 @@ function modificaauth(p1, p2, auth) {
         }
     }
     return { match, auth }
+}
+
+function getmenufromtxt() {
+    var dd = fs.readFileSync("dbdef/menu.md").toString().lines();
+    var menu = []
+    var m2 = undefined
+    console.log("parsing menu.md");
+
+    for (var d of dd) {
+        d = d.split('// ')[0].trim();
+        if (d) {
+            var vv = d.split(',');
+            var link = vv[0].trim().toLowerCase();
+            var name = (vv[1] || '').trim().toLowerCase();
+            var auth = (vv[2] || '').trim().toLowerCase();
+            var icon = (vv[3] || '').trim().toLowerCase();
+            var info = (vv[4] || '').trim().toLowerCase();
+            if (link == '#') {
+                m2 = {
+                    link: '',
+                    name,
+                    auth,
+                    icon,
+                    info,
+                    data: []
+                }
+                menu.push(m2);
+            } else {
+                if (m2) {
+                    m2.data.push({
+                        link,
+                        name,
+                        auth,
+                        icon,
+                        info
+                    });
+                } else {
+                    console.log(`menu.md miss: ${link}=>${name}`)
+                }
+            }
+        }
+    }
+    return menu;
 }
