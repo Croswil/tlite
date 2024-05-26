@@ -303,7 +303,7 @@ if (mi.r || mi.route) {
             if (fp.endsWith('.svelte')) {
                 var vv = fs.readFileSync(path.join(folder, f)).toString().replaceAll('\n', ' ').toString();
                 for (; ;) {
-                    var rr = /<(Bicon|BtnIcon|Icon)\s.*?img="(\w+)"/gim.exec(vv);
+                    var rr = /<(Bicon|BtnIcon|Icon)\s.*?img="([\w\u0400-\uFFFF\u{1F600}-\u{1FAFF}]+)"/imu.exec(vv);
                     if (rr) {
                         checkicon(rr[2]);
                         vv = vv.substr(rr.index + rr[0].length);
