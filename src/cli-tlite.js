@@ -39,16 +39,19 @@ function dobackup(ff, mode) {
             }
         } else {
             for (var rr of tabelle) {
-                var xx = db.campi(rr);
-                var out = []
-                var campi = ['rowid', ...xx];
-                out.push(campi);
-                var all = db.all(`select ${campi.join(',')} from ${rr}`)
-                for (var r of all) {
-                    var p = campi.reduce((t, e) => { t.push(r[e]); return t; }, []);
-                    out.push(p);
+                if (rr != 'sqlite_sequence') {
+                    var xx = db.campi(rr);
+                    var out = []
+                    var campi = ['rowid', ...xx];
+                    out.push(campi);
+                    const sql0 = `select ${campi.join(',')} from ${rr}`
+                    var all = db.all(sql0)
+                    for (var r of all) {
+                        var p = campi.reduce((t, e) => { t.push(r[e]); return t; }, []);
+                        out.push(p);
+                    }
+                    fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(out, null, 1));
                 }
-                fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(out, null, 1));
             }
         }
 
