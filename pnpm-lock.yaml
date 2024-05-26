@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       liburno_lib:
-        specifier: ^5.0.22
-        version: 5.0.22
+        specifier: ^5.0.24
+        version: 5.0.24
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
@@ -394,8 +394,8 @@ packages:
   is-reference@1.2.1:
     resolution: {integrity: sha512-U82MsXXiFIrjCK4otLT+o2NA2Cd2g5MLoOVXUZjIOhLurrRxpEXzI8O0KZHr3IjLvlAH1kTPYSuqer5T9ZVBKQ==}
 
-  liburno_lib@5.0.22:
-    resolution: {integrity: sha512-TqHd7Odhgxp+ZP2hQN6k6NRCRZ/OIK/cNa+1bsUcgzKMJUr9kPiddzEWSYqPLioJFfz5vSB9A9FEWveCxS6CBw==}
+  liburno_lib@5.0.24:
+    resolution: {integrity: sha512-jTu6UByAwuCCMfU9JAnw7IiWew9q3VSe0H1PQNcNolv+4o83nIqyciTAEE3q7EFwFl4NnNrJO0o2xSdla7oNgw==}
 
   magic-string@0.30.10:
     resolution: {integrity: sha512-iIRwTIf0QKV3UAnYK4PU8uiEc4SRh5jX0mwpIwETPpHdhVM4f53RSwS/vXvN1JhGX+Cs7B8qIq3d6AH49O5fAQ==}
@@ -875,7 +875,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.5
 
-  liburno_lib@5.0.22:
+  liburno_lib@5.0.24:
     dependencies:
       better-sqlite3: 10.0.0
       node-fetch: 3.3.2
