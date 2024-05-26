@@ -33,9 +33,11 @@ function dobackup(ff, mode) {
         var tabelle = db.tabelle();
         if (mode) {
             for (var rr of tabelle) {
-                var xx = db.campi(rr);
-                var sql = `select rowid,${xx.join(',')} from ${rr}`;
-                fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 1));
+                if (rr != 'sqlite_sequence') {
+                    var xx = db.campi(rr);
+                    var sql = `select rowid,${xx.join(',')} from ${rr}`;
+                    fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 1));
+                }
             }
         } else {
             for (var rr of tabelle) {
