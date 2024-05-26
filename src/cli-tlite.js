@@ -36,6 +36,7 @@ function dobackup(ff, mode) {
                 if (rr != 'sqlite_sequence') {
                     var xx = db.campi(rr);
                     var sql = `select rowid rowid,${xx.join(',')} from ${rr}`;
+                    console.log(sql);
                     fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(db.all(sql), null, 1));
                 }
             }
@@ -47,9 +48,10 @@ function dobackup(ff, mode) {
                     var campi = ['rowid rowid', ...xx];
                     out.push(campi);
                     const sql0 = `select ${campi.join(',')} from ${rr}`
+
                     var all = db.all(sql0)
                     for (var r of all) {
-                        var p = campi.reduce((t, e) => { t.push(r[e]); return t; }, []);
+                        var p = campi.reduce((t, e) => { t.push(r[e.split(' ')[0]]); return t; }, []);
                         out.push(p);
                     }
                     fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(out, null, 1));
