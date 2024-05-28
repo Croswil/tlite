@@ -181,7 +181,7 @@ ${Bold}Options:${Reset}
    ${Green}-h, --help${Reset}              mostra l'help
    ${Green}-i,--indirizzo <data>${Reset}   indirizzo IP
    ${Green}-d,--dominio <data> ${Reset}    nome del dominio (es. appdelmobile.com)
-   ${Green}-s,--subdominio <data> ${Reset} nome del sottodominio (es. www)
+   ${Green}-s,--subdominio <data> ${Reset} nome del sottodominio (es. www, o _ per vuoto)
    ${Green}-a,--all <data> ${Reset}        mostra tutti i record del DB (da usare con list)
 `
 
