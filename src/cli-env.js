@@ -397,10 +397,10 @@ function getmenufromtxt() {
         if (d) {
             var vv = d.split(',');
             var link = vv[0].trim().toLowerCase();
-            var name = (vv[1] || '').trim().toLowerCase();
+            var name = (vv[1] || '').trim();
             var auth = (vv[2] || '').trim().toLowerCase();
             var icon = (vv[3] || '').trim().toLowerCase();
-            var info = (vv[4] || '').trim().toLowerCase();
+            var info = (vv[4] || '').trim();
             if (link == '#') {
                 m2 = {
                     link: '',
