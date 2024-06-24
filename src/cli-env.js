@@ -391,7 +391,6 @@ function getmenufromtxt() {
     var menu = []
     var m2 = undefined
     console.log("parsing menu.md");
-
     for (var d of dd) {
         d = d.split('// ')[0].trim();
         if (d) {
@@ -426,5 +425,33 @@ function getmenufromtxt() {
             }
         }
     }
+    // calcola larghezza colonna
+    var ll = [0, 0, 0, 0]
+    for (var d of dd) {
+        var r = d.split('//')[0].trim();
+        if (r) {
+            var vv = r.split(',');
+            for (var i = 0; i < vv.length; i++) {
+                let l = (vv[i] || '').trim().length;
+                if (ll[i] < l) ll[i] = l;
+            }
+        }
+    }
+    // imposta larghezza colonne
+    for (var k = 0; k < dd.length; k++) {
+        let d = dd[k];
+        var tm1 = d.split('//');
+        var r = tm1[0].trim();
+        if (r) {
+            var vv = r.split(',');
+            for (var i = 0; i < vv.length; i++) {
+                vv[i] = (vv[i] || '').trim();
+                if (vv[i].length < ll[i]) vv[i] = vv[i] + ' '.repeat(ll[i] - vv[i].length)
+            }
+            tm1[0] = vv.join(',');
+            dd[k] = tm1.join('//');
+        }
+    }
+    fs.writeFileSync("dbdef/menu.md", dd.join('\n'));
     return menu;
 }

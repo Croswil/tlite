@@ -311,9 +311,33 @@ var doselect = (db, s, isclip) => {
     } else {
         return true;
     }
-
-
-    process.stdout.write(`${Green}${fld.join(',')}${Reset}\n`);
+    let sep = lasts.colonne ? '|' : ','
+    if (lasts.colonne) {
+        var padl = (str, l) => {
+            if (!str) str = ''
+            if (typeof (str) != 'string') str = str + ''
+            return str.length > l ? str.substr(0, l) : str.padEnd(l);
+        }
+        let l = [];
+        let flp = [];
+        for (var i = 0; i < fld.length; i++) {
+            l[i] = fld[i].length;
+            for (var r of rr) {
+                let v = r[fld[i]] + '';
+                if (v?.length > l[i]) l[i] = v.length;
+            }
+        }
+        for (var i = 0; i < fld.length; i++) if (l[i] > lasts.colonne) l[i] = lasts.colonne;
+        for (var i = 0; i < fld.length; i++) {
+            flp[i] = padl(fld[i], l[i]);
+            for (var r of rr) {
+                r[fld[i]] = padl(r[fld[i]], l[i]);
+            }
+        }
+        process.stdout.write(`${Blue}${flp.join(sep)}${Reset}\n`);
+    } else {
+        process.stdout.write(`${Green}${fld.join(sep)}${Reset}\n`);
+    }
     for (var r of rr) {
         rx = [];
         for (var f of fld) {
@@ -323,7 +347,7 @@ var doselect = (db, s, isclip) => {
             }
             rx.push(a);
         }
-        process.stdout.write(`${rx.join(',')}\n`);
+        process.stdout.write(`${rx.join(sep)}\n`);
     }
     return false;
 }
@@ -440,7 +464,8 @@ ${Bold}h, help,?${Reset}Documentazione delle funzioni di sistema
 ${Bold}use[file]          ${Reset}Mostra / Imposta il database in uso
 ${Bold}close, chiudi      ${Reset}Chiudi il database corrente
 ${Bold}last, db, lastdb   ${Reset}Mostra l'elenco degli ultimi db utilizzati
-${Bold}jshort[1, 0]       ${Reset}Imposta la visualizzazione record json(1 = full, 0 no)
+${Bold}colonne <larg>     ${Reset}Incolonna output select con colonne di max <larg>
+${Bold}jshort[2, 1, 0]    ${Reset}Imposta la visualizzazione record json( 1 = full, 0 no)
 ${Bold}outdir <folder>    ${Reset}Imposta la cartella di output per esportazioni(.per default )
 ${Bold}schema[d][table]   ${Reset}Mostra sql con la creazione del database / Tabella
 ${Bold}attach <file> <nn> ${Reset}Collega un database, con il nome <nn>, o  mostra l'elenco dei db. collegati
@@ -533,6 +558,10 @@ ${Bold}q,quit             ${Reset}Esci
                 break;
             case 'jshort':
                 lasts.short = parseInt(r0) ? 1 : 0
+                fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
+                break;
+            case 'colonne':
+                lasts.colonne = parseInt(r0) || 0;
                 fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 break;
             case 'outdir':
@@ -836,6 +865,7 @@ ${Bold}q,quit             ${Reset}Esci
             case "select":
             case "insert":
             case "update":
+            case "pragma":
             case "delete":
             case "drop":
             case "alter":
