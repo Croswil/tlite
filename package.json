@@ -42,5 +42,8 @@
     "@rollup/plugin-terser": "^0.4.4",
     "inquirer": "^9.2.22",
     "rollup": "^4.9.6"
+  },
+  "_moduleAliases": {
+    "$bk": "./srcbk"
   }
 }

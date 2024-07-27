@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 
 import readline from 'readline';
-import path from 'path'
+import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
 import { spawnSync, execSync } from 'child_process';
 import { database, init } from 'liburno_lib';
-import { xlsexport } from './xlsdb.js'
+import { xlsexport } from './xlsdb.js';
 const { Reset, Bold, Reverse, Red, Green, Yellow, Blue, Magenta, Cyan, White } = init();
-
-
 
 const DATEVERSION = `------------------------------------------------------
 ${Cyan}${Bold}tlite${Reset}: Utility per sqlite       ${White}(c) Croswil  v. ${Yellow}${Bold}${process.env.VERSION}${Reset}
@@ -28,7 +26,7 @@ function dobackup(ff, mode) {
         var d1 = new Date().valueOf();
         dbname = ff;
         db = database.db(ff);
-        var schema = db.schema()
+        var schema = db.schema();
         fs.writeFileSync(path.join(pc.outfile, `schema.sql`), schema);
         var tabelle = db.tabelle();
         if (mode) {
@@ -43,14 +41,17 @@ function dobackup(ff, mode) {
             for (var rr of tabelle) {
                 if (rr != 'sqlite_sequence') {
                     var xx = db.campi(rr);
-                    var out = []
+                    var out = [];
                     var campi = ['rowid rowid', ...xx];
-                    const sql0 = `select ${campi.join(',')} from ${rr}`
+                    const sql0 = `select ${campi.join(',')} from ${rr}`;
                     campi[0] = 'rowid';
                     out.push(campi);
-                    var all = db.all(sql0)
+                    var all = db.all(sql0);
                     for (var r of all) {
-                        var p = campi.reduce((t, e) => { t.push(r[e]); return t; }, []);
+                        var p = campi.reduce((t, e) => {
+                            t.push(r[e]);
+                            return t;
+                        }, []);
                         out.push(p);
                     }
                     fs.writeFileSync(path.join(pc.outfile, `${rr}.json`), JSON.stringify(out, null, 1));
@@ -60,11 +61,10 @@ function dobackup(ff, mode) {
 
         var d1 = new Date().valueOf() - d1;
 
-        console.log("tempo ms:", d1);
+        console.log('tempo ms:', d1);
         db.chiudi();
     }
     process.exit(0);
-
 }
 function dorestore(ff) {
     var k = path.parse(ff);
@@ -81,45 +81,45 @@ function dorestore(ff) {
         db.run(sql);
         var tabelle = db.tabelle();
         for (var t of tabelle) {
-            var ff = path.join(outfile, t + '.json')
+            var ff = path.join(outfile, t + '.json');
             if (fs.existsSync(ff)) {
                 var dd = JSON.parse(fs.readFileSync(ff));
                 if (dd && dd[0]) {
                     if (Array.isArray(dd[0])) {
                         var rx = dd[0];
                         var r2 = [];
-                        rx.forEach(r => r2.push('?'));
-                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                        rx.forEach((r) => r2.push('?'));
+                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `;
                         //console.log("IsArray", sql);
                         var ds = db.prepare(sql);
                         for (var i = 1; i < dd.length; i++) {
-                            ds.run(...dd[i])
+                            ds.run(...dd[i]);
                         }
                     } else {
                         var rx = db.campi(t);
                         var r2 = [];
                         rx.unshift('rowid');
-                        rx.forEach(r => r2.push('?'));
-                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `
+                        rx.forEach((r) => r2.push('?'));
+                        var sql = `insert into ${t} (${rx.join(',')}) values (${r2.join(',')}) `;
                         var ds = db.prepare(sql);
                         for (var d of dd) {
-                            var pars = rx.reduce((t, e) => { t.push(d[e]); return t; }, []);
+                            var pars = rx.reduce((t, e) => {
+                                t.push(d[e]);
+                                return t;
+                            }, []);
                             ds.run(...pars);
                         }
                     }
                 }
-
             }
         }
         db.commit();
         db.chiudi();
         var d1 = new Date().valueOf() - d1;
-        console.log("restore tempo ms:", d1);
-
+        console.log('restore tempo ms:', d1);
     }
     process.exit(0);
 }
-
 
 var clippa = (txt) => {
     if (process.platform == 'darwin') {
@@ -127,7 +127,7 @@ var clippa = (txt) => {
     } else {
         spawnSync('xsel', ['--clipboard', '--input'], { input: txt });
     }
-}
+};
 
 var getclip = () => {
     let clipContent;
@@ -138,8 +138,7 @@ var getclip = () => {
     }
 
     return clipContent;
-}
-
+};
 
 function checkcartellabackup(folderPath) {
     // Verifica se la cartella esiste
@@ -158,17 +157,16 @@ function checkcartellabackup(folderPath) {
     }
 }
 function getip() {
-
-    var folder = "/etc/nginx/sites-available"
+    var folder = '/etc/nginx/sites-available';
     if (fs.existsSync(folder)) {
         var vv = fs.readdirSync(folder);
         for (var v of vv) {
             if (v.length > 0 && v != 'default') {
                 var data = fs.readFileSync(path.join(folder, v)).toString();
                 var r1 = /server_name\s*(.*);/gim.exec(data);
-                var pp = []
+                var pp = [];
                 if (r1) {
-                    for (; ;) {
+                    for (;;) {
                         var r2 = /localhost:(\d+)/gim.exec(data);
                         if (r2) {
                             pp.push(r2[1]);
@@ -179,22 +177,24 @@ function getip() {
                     }
                 }
                 stdout.write(`${Bold}${r1[1]}:${Reset} ${Green}${pp.join(' ')}${Reset}\n`);
-
             }
         }
     } else {
         stdout.write(`Folder: ${Green}"${folder}" ${Reset} not found!\n`);
     }
     process.exit(0);
-
 }
 
 // -------------------------- variabili globali
-var db = null, dbname = '';
-var modosql = false, mcreate = false, mmenu = false;
+var db = null,
+    dbname = '';
+var modosql = false,
+    mcreate = false,
+    mmenu = false;
 
-
-var pad = (s, l) => { return !l || s.length >= l ? l : s + new Array(l - s.length).join(' '); }
+var pad = (s, l) => {
+    return !l || s.length >= l ? l : s + new Array(l - s.length).join(' ');
+};
 var getdb = (noerr = false) => {
     if (dbname) {
         try {
@@ -202,15 +202,13 @@ var getdb = (noerr = false) => {
                 db = database.db(dbname);
             }
             return true;
-        } catch (e) {
-
-        }
+        } catch (e) {}
     } else {
         db = null;
         if (!noerr) stdout.write(`${Red}..missing db..${Reset}\n`);
     }
     return false;
-}
+};
 function getfileout(r0) {
     if (Array.isArray(r0)) r0 = r0.join(' ');
     var tm = path.parse(dbname);
@@ -232,25 +230,22 @@ function getfileout(r0) {
     return r0 ? r0 : 'out';
 }
 
-
 var stdout = process.stdout;
 const rl = readline.createInterface({
     input: process.stdin,
     output: stdout,
-    prompt: 'TL> '
+    prompt: 'TL> ',
 });
-
-
 
 var lasts = {
     data: [],
     short: true,
     outdir: '',
-    history: []
+    history: [],
 };
 
-
-{ // ------------------------- gestione degli ultimi files inseriti 
+{
+    // ------------------------- gestione degli ultimi files inseriti
     var filelast = '.lasts.tlite';
     if (fs.existsSync(filelast)) {
         var tm = JSON.parse(fs.readFileSync(filelast));
@@ -260,11 +255,12 @@ var lasts = {
         for (var i = 0; i < lasts.data.length; i++) {
             var d = lasts.data[i];
             if (d == file) {
-                if (i > 0) { // sposta al primo posto
+                if (i > 0) {
+                    // sposta al primo posto
                     var tm = lasts.data.splice(i, 1);
                     lasts.data.unshift(tm[0]);
                     lasts.history = [...rl.history];
-                    if (rl.history.length > 50) rl.history.length = 50
+                    if (rl.history.length > 50) rl.history.length = 50;
                     fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 }
                 return;
@@ -273,15 +269,12 @@ var lasts = {
         lasts.data.unshift(file);
         if (lasts.data.length > 9) lasts.data.pop();
         fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
-    }
+    };
 }
-
-
-
 
 var doselect = (db, s, isclip) => {
     var cl = [];
-    var rr = /(\[[^\]]*\])/gim.exec(s)
+    var rr = /(\[[^\]]*\])/gim.exec(s);
     if (rr) {
         s = s.substr(0, rr.index);
         cl = JSON.parse(rr[1]);
@@ -289,7 +282,7 @@ var doselect = (db, s, isclip) => {
     if (s.startsWith('e ')) {
         s = 'explain query plan ' + s.substr(2);
     }
-    if (s.indexOf(' limit') < 1) s += ' limit 20' // max 20 righe;
+    if (s.indexOf(' limit') < 1) s += ' limit 20'; // max 20 righe;
     var rr = db.prepare(s).all(...cl);
     if (isclip && rr?.length > 0) {
         var tt = [];
@@ -303,7 +296,8 @@ var doselect = (db, s, isclip) => {
         clippa(tt.join('\n'));
     }
 
-    var fld = [], rx = [];
+    var fld = [],
+        rx = [];
     if (rr && rr.length > 0) {
         for (var r in rr[0]) {
             fld.push(r);
@@ -311,13 +305,13 @@ var doselect = (db, s, isclip) => {
     } else {
         return true;
     }
-    let sep = lasts.colonne ? '|' : ','
+    let sep = lasts.colonne ? '|' : ',';
     if (lasts.colonne) {
         var padl = (str, l) => {
-            if (!str) str = ''
-            if (typeof (str) != 'string') str = str + ''
+            if (!str) str = '';
+            if (typeof str != 'string') str = str + '';
             return str.length > l ? str.substr(0, l) : str.padEnd(l);
-        }
+        };
         let l = [];
         let flp = [];
         for (var i = 0; i < fld.length; i++) {
@@ -342,7 +336,7 @@ var doselect = (db, s, isclip) => {
         rx = [];
         for (var f of fld) {
             var a = r[f];
-            if (lasts.short && typeof (a) == 'string' && a.length > 20 && (a.startsWith('{') || a.startsWith('['))) {
+            if (lasts.short && typeof a == 'string' && a.length > 20 && (a.startsWith('{') || a.startsWith('['))) {
                 a = `${Red}JSON${Reset}`;
             }
             rx.push(a);
@@ -350,19 +344,17 @@ var doselect = (db, s, isclip) => {
         process.stdout.write(`${rx.join(sep)}\n`);
     }
     return false;
-}
+};
 var printdbs = () => {
-    var rr = db.databases()
+    var rr = db.databases();
     for (var r of rr) {
         stdout.write(`${Yellow}${r.name}: ${Bold}${r.file}${Reset}\n`);
     }
-}
+};
 
 var dosql = (sql, modo, isclip) => {
     startast = false;
     if (sql.length > 1 && sql[sql.length - 1] == '!') sql = sql.substr(0, sql.length - 1);
-
-
 
     if (getdb()) {
         try {
@@ -389,20 +381,22 @@ var dosql = (sql, modo, isclip) => {
                 }
                 if (ss.length > 1 || ss[0].includes('\n')) {
                     for (var i = 0; i < ss.length; i++) {
-                        ss[i] = ss[i].split('\n').filter(e => e.trim()).join('\n');
+                        ss[i] = ss[i]
+                            .split('\n')
+                            .filter((e) => e.trim())
+                            .join('\n');
                     }
                     clippa(['!', ...ss, '!'].join('\n'));
                 } else {
                     clippa(ss.join('\n'));
                 }
 
-
                 for (var s of ss) {
                     s = s.trim();
                     if (!/^\s*(select|e)\s+/i.test(s)) {
                         if (s.trim()) {
                             var cl = [];
-                            var rr = /(\[[^\]]*\])/gim.exec(s)
+                            var rr = /(\[[^\]]*\])/gim.exec(s);
                             if (rr) {
                                 s = s.substr(0, rr.index);
                                 cl = JSON.parse(rr[1]);
@@ -410,7 +404,6 @@ var dosql = (sql, modo, isclip) => {
                             db.run(s, ...cl);
                         }
                     } else {
-
                         return doselect(db, s, isclip);
                     }
                 }
@@ -419,42 +412,40 @@ var dosql = (sql, modo, isclip) => {
             process.stdout.write(`${Red}${e}${Reset}\n`);
         }
     }
-}
-
+};
 
 var startast = false;
-var ressql = "";
+var ressql = '';
 var processa = async (res) => {
     if (mmenu) {
         res = parseInt(res);
         mmenu = false;
         if (res > 0 && res <= lasts.data.length) {
-            await processa(`use ${lasts.data[res - 1]}`)
+            await processa(`use ${lasts.data[res - 1]}`);
         }
-    }
-    else if (modosql) {
+    } else if (modosql) {
         ressql += '\n' + res;
-        if (ressql[ressql.length - 1] == '!' || (ressql[ressql.length - 1] == ';') && startast == false) {
+        if (ressql[ressql.length - 1] == '!' || (ressql[ressql.length - 1] == ';' && startast == false)) {
             dosql(ressql, mcreate);
             mcreate = false;
-            ressql = "";
+            ressql = '';
             modosql = false;
         }
     } else {
         if (!res) res = '';
         var resplit = res.split(' ');
-        var r1 = resplit.splice(0, 1)
-        r1 = r1 && r1[0] ? r1[0].toLowerCase() : ''
-        var r0 = resplit.join(' '); if (!r0) r0 = '';
+        var r1 = resplit.splice(0, 1);
+        r1 = r1 && r1[0] ? r1[0].toLowerCase() : '';
+        var r0 = resplit.join(' ');
+        if (!r0) r0 = '';
         var r1s = r1.split(';')[0];
         if (r1s.startsWith('.')) {
             r1 = r1s.substr(1);
             r1s = '.';
-
         }
         switch (r1s) {
-            case "q":
-            case "quit":
+            case 'q':
+            case 'quit':
                 doesci();
             case 'h':
             case 'help':
@@ -492,7 +483,7 @@ ${Bold}v <table> [cerca]  ${Reset}Genera il comando SQL per la ricerca FTS5. se 
 ${Bold}.<table>           ${Reset}Mostra il contenuto della tabella
 ${Bold}!!                 ${Reset}Apre nano con la clipboard
 ${Bold}q,quit             ${Reset}Esci
-`)
+`);
                 break;
             case 'getip':
                 getip();
@@ -519,19 +510,21 @@ ${Bold}q,quit             ${Reset}Esci
                 break;
             case '!!':
                 let tempFile = path.join(os.tmpdir(), '.tlite_tmp');
-                var clp = getclip().replaceAll(/^\s*\!\s*\n?/gim, '').replaceAll(/\!\s*$/gim, '');
+                var clp = getclip()
+                    .replaceAll(/^\s*\!\s*\n?/gim, '')
+                    .replaceAll(/\!\s*$/gim, '');
                 fs.writeFileSync(tempFile, clp);
                 execSync(`nano ${tempFile}`, { stdio: 'inherit' });
                 let editedContent = fs.readFileSync(tempFile, 'utf-8');
                 fs.unlinkSync(tempFile);
                 dosql(editedContent, /^\s*c\s+\w/gim.test(editedContent));
-                ressql = false
+                ressql = false;
                 break;
             case 'md':
             case 'md5':
                 r0 = r0.replaceAll(';', '').trim();
                 var r = r0.md5();
-                clippa(`${r || ''}`)
+                clippa(`${r || ''}`);
                 stdout.write(`${r || ''}\n`);
                 break;
 
@@ -557,7 +550,7 @@ ${Bold}q,quit             ${Reset}Esci
                 }
                 break;
             case 'jshort':
-                lasts.short = parseInt(r0) ? 1 : 0
+                lasts.short = parseInt(r0) ? 1 : 0;
                 fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 break;
             case 'colonne':
@@ -566,7 +559,7 @@ ${Bold}q,quit             ${Reset}Esci
                 break;
             case 'outdir':
                 if (r0) {
-                    lasts.outdir = r0 == '.' ? '' : r0
+                    lasts.outdir = r0 == '.' ? '' : r0;
                     fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
                 }
                 stdout.write(`${Green}OutDir: ${Bold}${lasts.outdir}${Reset}\n`);
@@ -580,7 +573,6 @@ ${Bold}q,quit             ${Reset}Esci
                             var vv = r0.split(' ');
                             if (vv[0] && db.attach(vv[0], vv[1])) {
                                 printdbs();
-
                             } else {
                                 stdout.write(`${Red}Errore collegamento: file non trovato${Reset}\n`);
                             }
@@ -596,9 +588,8 @@ ${Bold}q,quit             ${Reset}Esci
                 if (getdb()) {
                     try {
                         r0 = r0.replaceAll(';', '');
-                        db.detach(r0)
+                        db.detach(r0);
                         printdbs();
-
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -611,7 +602,7 @@ ${Bold}q,quit             ${Reset}Esci
                         var rr = db.tabelle();
                         stdout.write(`${Yellow}Tables: ${Bold}${db.name}${Reset}\n`);
                         for (var r of rr) {
-                            var c = db.get(`select count(rowid) tot from ${r}`).tot
+                            var c = db.get(`select count(rowid) tot from ${r}`).tot;
                             stdout.write(`${r} => ${c || 0} \n`);
                         }
                     } catch (e) {
@@ -629,7 +620,6 @@ ${Bold}q,quit             ${Reset}Esci
                         if (r0) stdout.write(`${Yellow}Table: ${Bold}${db.name}.${r0}${Reset}\n`);
                         stdout.write(JSON.stringify(rr, null, 2));
                         stdout.write('\n');
-
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -647,20 +637,19 @@ ${Bold}q,quit             ${Reset}Esci
                     }
                 }
                 break;
-            case "yaml":
+            case 'yaml':
                 if (getdb()) {
                     try {
-
                         r0 = r0.replaceAll(';', '');
                         var oo = [];
                         if (!r0) {
                             var vv = db.tabelle();
                         } else {
-                            vv = [r0]
+                            vv = [r0];
                         }
-                        var cl = [`#!db`]
+                        var cl = [`#!db`];
                         for (var v of vv) {
-                            cl.push(`\n${v}:`)
+                            cl.push(`\n${v}:`);
                             var campi = db.campi(v, true);
                             var pr = [];
                             for (var c in campi) {
@@ -669,26 +658,24 @@ ${Bold}q,quit             ${Reset}Esci
                                 cl.push(`  ${c}: ${k.t || 'v'}`);
                             }
                             if (pr.length) {
-                                cl.push(`  __pk: ${pr.join(',')}`)
+                                cl.push(`  __pk: ${pr.join(',')}`);
                             }
-                            var rr = db.all(`select sql from  sqlite_master  where sql>'' and Lower(tbl_name)='${v}' and type='index' order by name`)
+                            var rr = db.all(`select sql from  sqlite_master  where sql>'' and Lower(tbl_name)='${v}' and type='index' order by name`);
                             var i = 0;
                             for (var r of rr) {
                                 var tm = /\son\s(\w+)\s\((.*?)\)/gim.exec(r.sql);
                                 if (tm) {
                                     cl.push(`  __i${i}: ${tm[2]}`);
-                                    i++
+                                    i++;
                                 } else {
                                     console.log(r.sql);
                                 }
                             }
                         }
 
-
                         var out = cl.join(`\n`);
                         clippa(`${out} \n`);
                         stdout.write(`${out}\n`);
-
                     } catch (e) {
                         stdout.write(`${Red}${e}${Reset}\n`);
                     }
@@ -698,12 +685,12 @@ ${Bold}q,quit             ${Reset}Esci
                 if (getdb()) {
                     try {
                         var f2 = resplit[0];
-                        var file = getfileout(f2)
+                        var file = getfileout(f2);
                         if (resplit.length > 1) {
                             resplit.splice(0, 1);
                             r0 = resplit.join(' ');
                         }
-                        var rq = db.export(r0, false)
+                        var rq = db.export(r0, false);
                         xlsexport(rq, f2, file);
                         stdout.write(`write: ${Bold}${file}.xlsx${Reset}\n`);
                     } catch (e) {
@@ -712,24 +699,21 @@ ${Bold}q,quit             ${Reset}Esci
                 }
                 break;
 
-
             case 'exp':
             case 'expfull':
                 if (getdb()) {
                     try {
-                        var file = getfileout(resplit[0]) + '.json'
+                        var file = getfileout(resplit[0]) + '.json';
                         if (resplit.length > 1) {
                             resplit.splice(0, 1);
                             r0 = resplit.join(' ');
                         }
-                        var rq = db.export(r0, r1 === 'expfull')
+                        var rq = db.export(r0, r1 === 'expfull');
                         if (r0) {
                             for (var r of rq) {
                                 for (var x in r) {
                                     var a = r[x];
-                                    if (typeof (a) == 'string'
-                                        && (a.startsWith('{') || a.startsWith('['))
-                                        && (a.endsWith('}') || a.endsWith(']'))) {
+                                    if (typeof a == 'string' && (a.startsWith('{') || a.startsWith('[')) && (a.endsWith('}') || a.endsWith(']'))) {
                                         r[x] = JSON.parse(a);
                                     }
                                 }
@@ -744,18 +728,18 @@ ${Bold}q,quit             ${Reset}Esci
                     }
                 }
                 break;
-            case "csvexp":
+            case 'csvexp':
                 if (getdb()) {
                     try {
                         function csvcampo(t) {
-                            if (typeof (t) == 'number') t = '' + t;
+                            if (typeof t == 'number') t = '' + t;
                             if (t.includes('\t') || t.includes('\n') || t.includes('"')) {
-                                t = `"${t.replace(/"/g, '""')}"`
+                                t = `"${t.replace(/"/g, '""')}"`;
                             }
                             return t;
                         }
                         var f2 = resplit[0];
-                        var file = getfileout(f2) + '.csv'
+                        var file = getfileout(f2) + '.csv';
                         var fl = false;
                         if (resplit.length > 1) {
                             resplit.splice(0, 1);
@@ -766,7 +750,7 @@ ${Bold}q,quit             ${Reset}Esci
                             var cl = [];
                             var c2 = [];
                             if (!fl) {
-                                var rq = db.export(r0, true)
+                                var rq = db.export(r0, true);
                                 for (var x in rq.flds) cl.push(x);
                                 c2.push(cl.join('\t'));
                                 for (var r of rq.data) {
@@ -809,22 +793,25 @@ ${Bold}q,quit             ${Reset}Esci
                 if (getdb()) {
                     try {
                         var f2 = resplit[0];
-                        var file = getfileout(f2) + '.json'
+                        var file = getfileout(f2) + '.json';
                         if (fs.existsSync(file)) {
                             var rq = JSON.parse(fs.readFileSync(file));
                             if (r0) {
                                 for (var r of rq) {
                                     for (var x in r) {
                                         var a = r[x];
-                                        if (a && typeof (a) == 'object') {
+                                        if (a && typeof a == 'object') {
                                             r[x] = JSON.stringify(a);
                                         }
                                     }
                                 }
                             }
+                            if (db.esisteTabella('sqlite_sequence')) {
+                                db.run(`update sqlite_sequence set seq=0 where name=?`, r0);
+                            }
+                            console.log('r0', r0);
                             db.import(r0, rq);
                             stdout.write(`read: ${Bold}${file}${Reset}\n`);
-
                         } else {
                             stdout.write(`${Red}File non Trovato: ${file}${Reset}\n`);
                         }
@@ -837,9 +824,9 @@ ${Bold}q,quit             ${Reset}Esci
                 if (getdb()) {
                     try {
                         if (r0) {
-                            var file = getfileout(r0) + '.xlsx'
+                            var file = getfileout(r0) + '.xlsx';
                             if (fs.existsSync(file)) {
-                                var rq = await xlsimport(file, r0)
+                                var rq = await xlsimport(file, r0);
                                 db.import(r0, rq);
                             }
                         }
@@ -859,22 +846,22 @@ ${Bold}q,quit             ${Reset}Esci
                     ressql = r0;
                 }
                 break;
-            case "c":
+            case 'c':
                 dosql(r0, true);
                 break;
-            case "select":
-            case "insert":
-            case "update":
-            case "pragma":
-            case "delete":
-            case "drop":
-            case "alter":
-            case "create":
-            case "vacuum":
-            case "e":
+            case 'select':
+            case 'insert':
+            case 'update':
+            case 'pragma':
+            case 'delete':
+            case 'drop':
+            case 'alter':
+            case 'create':
+            case 'vacuum':
+            case 'e':
                 dosql(r1 + ' ' + r0, false);
                 break;
-            case "clip":
+            case 'clip':
                 dosql('select ' + r0, false, true);
                 break;
             case 'i':
@@ -888,21 +875,31 @@ ${Bold}q,quit             ${Reset}Esci
                         try {
                             var r;
                             switch (r1) {
-                                case 'd': r = db.strdelete(r0); break;
-                                case 'i': r = db.strinsert(r0); break;
-                                case 'u': r = db.strupdate(r0); break;
-                                case 'so': r = db.strselect(r0, true); break;
+                                case 'd':
+                                    r = db.strdelete(r0);
+                                    break;
+                                case 'i':
+                                    r = db.strinsert(r0);
+                                    break;
+                                case 'u':
+                                    r = db.strupdate(r0);
+                                    break;
+                                case 'so':
+                                    r = db.strselect(r0, true);
+                                    break;
                                 case 'v':
-                                    r0 = resplit.splice(0, 1)[0]
+                                    r0 = resplit.splice(0, 1)[0];
                                     var word = resplit.join(' ');
                                     r = db.strvirtual(r0, word);
                                     if (word) {
                                         doselect(db, r);
                                     }
                                     break;
-                                default: r = db.strselect(r0); break;
+                                default:
+                                    r = db.strselect(r0);
+                                    break;
                             }
-                            clippa(`${r || ''}`)
+                            clippa(`${r || ''}`);
                             stdout.write(`${r || ''}\n`);
                         } catch (e) {
                             stdout.write(`${Red}${e}${Reset}\n`);
@@ -914,10 +911,10 @@ ${Bold}q,quit             ${Reset}Esci
             case '.':
                 if (getdb()) {
                     try {
-                        if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`)
-                        r = db.strselect(r1, true)
+                        if (!db.esisteTabella(r1)) throw new Error(`missing table ${r1}`);
+                        r = db.strselect(r1, true);
                         if (r0) {
-                            r = r.split('order by')[0] + ' ' + r0
+                            r = r.split('order by')[0] + ' ' + r0;
                         }
                         if (dosql(r, false)) {
                             var tm = db.campi(r1);
@@ -934,21 +931,21 @@ ${Bold}q,quit             ${Reset}Esci
                 break;
             default:
                 stdout.write(`${Red}comando sconosciuto: ${Bold}${res}${Reset}\n`);
-                break; 1
+                break;
+                1;
         }
     }
-
-}
+};
 
 var xx = process.argv[2];
 if (xx && /^\s*(ip|getip)\s*$/gim.test(xx)) {
-    getip()
+    getip();
 } else if (xx && xx == 'backup') {
     var ff = process.argv[3];
-    dobackup(ff, process.argv[4] ? 1 : 0)
+    dobackup(ff, process.argv[4] ? 1 : 0);
 } else if (xx && xx == 'restore') {
     var ff = process.argv[3];
-    dorestore(ff)
+    dorestore(ff);
 } else if (!xx || fs.existsSync(xx)) {
     console.log(DATEVERSION);
 
@@ -967,7 +964,8 @@ uso:
     process.exit(0);
 }
 
-let cl = [], cl2 = [];
+let cl = [],
+    cl2 = [];
 setprompt();
 if (lasts.history) rl.history = [...lasts.history];
 rl.on('line', (lines) => {
@@ -980,36 +978,35 @@ rl.on('line', (lines) => {
             cl.push(line.slice(0, r1.index));
             continue;
         } else if (line.trim() || cl.length) {
-            cl.push(line.trim())
+            cl.push(line.trim());
             cl2.push(line);
         }
         if (cl.length) {
             if (!mmenu) rl.history.unshift(cl2.join('\n'));
             processa(cl.join(' '));
-            setprompt()
+            setprompt();
         }
     }
 }).on('close', () => doesci());
 
 function setprompt() {
-    cl = []
+    cl = [];
     cl2 = [];
     if (mmenu) {
-        rl.setPrompt("[0..9] >")
+        rl.setPrompt('[0..9] >');
     } else if (!modosql) {
-        rl.setPrompt("tl> ")
+        rl.setPrompt('tl> ');
     } else {
-        rl.setPrompt("");
+        rl.setPrompt('');
     }
     rl.prompt();
-
 }
 
 function doesci() {
     if (getdb()) db.close();
-    lasts.history = [...new Set(rl.history.filter(e => e.trim().length > 2))];
-    if (rl.history.length > 50) rl.history.length = 50
+    lasts.history = [...new Set(rl.history.filter((e) => e.trim().length > 2))];
+    if (rl.history.length > 50) rl.history.length = 50;
     fs.writeFileSync(filelast, JSON.stringify(lasts, null, 2));
-    stdout.write('bye1..\n')
+    stdout.write('bye1..\n');
     process.exit(0);
 }
